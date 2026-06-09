@@ -1,0 +1,69 @@
+# Four-GPU ablation batch for the 0602 baseline.
+#
+# Dry run first:
+#   python scripts/launch_experiments.py --spec configs/experiments/ablation_4gpu.yaml
+#
+# Launch sequentially in the current process:
+#   python scripts/launch_experiments.py --spec configs/experiments/ablation_4gpu.yaml --launch
+#
+# For true parallel training, use the printed commands in four tmux sessions,
+# or launch one experiment per copied spec.
+
+study_name: 20260603_ablation_0602
+output_root: outputs
+base_config: configs/norman.yaml
+
+experiments:
+  - name: full
+    gpu: 0
+    fold: 1
+    seed: 42
+
+  - name: no_spectral_propagation
+    gpu: 1
+    fold: 1
+    seed: 42
+    overrides:
+      model.spectral_propagation: false
+
+  - name: no_ot_coupling
+    gpu: 2
+    fold: 1
+    seed: 42
+    overrides:
+      flow.ot_coupling: false
+
+  - name: no_delta_corr
+    gpu: 3
+    fold: 1
+    seed: 42
+    overrides:
+      flow.delta_corr_weight: 0.0
+
+  - name: go_only
+    gpu: 0
+    fold: 1
+    seed: 42
+    overrides:
+      model.graph_mode: go
+
+  - name: coexp_only
+    gpu: 1
+    fold: 1
+    seed: 42
+    overrides:
+      model.graph_mode: coexp
+
+  - name: graph_none
+    gpu: 2
+    fold: 1
+    seed: 42
+    overrides:
+      model.graph_mode: none
+
+  - name: mmd_on
+    gpu: 3
+    fold: 1
+    seed: 42
+    overrides:
+      flow.mmd_weight: 0.05

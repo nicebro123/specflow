@@ -1,0 +1,20 @@
+# Local Control/Additive baselines for ComboSciPlex.
+#
+# Additive uses observed train single-drug deltas. If held-out drugs have no
+# train single profile, the strict default raises an error.
+
+study_name: 20260603_combosciplex_baselines_0602
+output_root: outputs
+base_config: configs/combosciplex.yaml
+train_script: scripts/evaluate_baseline.py
+
+experiments:
+  - name: combosciplex_control
+    gpu: 0
+    seed: 42
+    extra_args: [--baseline, control]
+
+  - name: combosciplex_additive
+    gpu: 1
+    seed: 42
+    extra_args: [--baseline, additive]

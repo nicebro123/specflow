@@ -1,0 +1,89 @@
+data:
+  dataset: norman
+  h5ad_path: data/norman.h5ad
+  condition_key: condition
+  gene_key: null
+  control_labels: [ctrl, control, non-targeting]
+  separator: "+"
+  target_map_path: null
+  split_path: null
+  split_fold: 0
+  preprocess: true
+  n_top_genes: 5000
+  setting: additive
+  seed: 42
+  test_fraction: 0.2
+  val_fraction: 0.1
+  samples_per_condition: null
+
+graph:
+  go:
+    annotation_file: data/gene_ontology/go_annotations.gaf
+    namespace: biological_process
+    k_neighbors: 20
+  coexp:
+    k_neighbors: 20
+    threshold: 0.3
+  perturbation:
+    alpha_go: 0.1
+    alpha_coexp: 0.05
+    edge_dropout: 0.0
+    edge_dropout_seed: 42
+
+spectral:
+  n_components: 32
+  go_components: 32
+  coexp_components: 32
+  macro_ratio: 0.5
+  use_perturbation_approx: false
+  cache_dir: cache/spectral
+  static: true   # S3: static positional encoding (no per-perturbation graph attenuation)
+
+model:
+  dual_graph: true
+  d_model: 128
+  hidden_dim: 256
+  spectral_dim: 64
+  graph_dim: 32
+  pert_dim: 32
+  n_velocity_layers: 3
+  graph_mode: dual       # dual | go | coexp | none
+  fusion_mode: adaptive  # adaptive | mean | concat
+  scale_mode: multi      # multi | macro | micro
+
+flow:
+  sigma: 0.5
+  mmd_weight: 0.1
+  mmd_interval: 10
+  mmd_steps: 8
+  delta_corr_weight: 0.0
+
+training:
+  batch_size: 32
+  max_epochs: 100
+  max_steps: null
+  eval_every_steps: 5000
+  learning_rate: 0.0005
+  weight_decay: 0.00001
+  grad_clip: 1.0
+  group_by_condition: true
+  patience: 20
+  use_ema: true
+  ema_decay: 0.999
+  scheduler: cosine
+  warmup_epochs: 5
+  warmup_steps: null
+  eta_min: 0.000001
+  use_amp: true
+  show_progress: true
+  monitor_pearson_delta: true
+
+inference:
+  n_samples: 10
+  n_control_cells: 64
+  ode_steps: 50
+  de_top_k: 20
+
+output:
+  output_dir: outputs/default
+  checkpoint_name: best.pt

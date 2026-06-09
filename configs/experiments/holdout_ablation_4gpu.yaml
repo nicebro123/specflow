@@ -1,0 +1,42 @@
+# Core holdout ablations. These should be run after holdout_full is stable.
+
+study_name: 20260603_holdout_ablation_0602
+output_root: outputs
+base_config: configs/norman.yaml
+overrides:
+  data.setting: holdout
+  data.split_path: data/splits/norman_holdout.pkl
+
+experiments:
+  - name: holdout_full
+    gpu: 0
+    fold: 1
+    seed: 42
+
+  - name: holdout_graph_none
+    gpu: 1
+    fold: 1
+    seed: 42
+    overrides:
+      model.graph_mode: none
+
+  - name: holdout_no_spectral_propagation
+    gpu: 2
+    fold: 1
+    seed: 42
+    overrides:
+      model.spectral_propagation: false
+
+  - name: holdout_no_delta_corr
+    gpu: 3
+    fold: 1
+    seed: 42
+    overrides:
+      flow.delta_corr_weight: 0.0
+
+  - name: holdout_no_ot_coupling
+    gpu: 0
+    fold: 1
+    seed: 42
+    overrides:
+      flow.ot_coupling: false

@@ -1,0 +1,50 @@
+data:
+  dataset: norman
+  h5ad_path: data/norman.h5ad
+  condition_key: condition
+  control_labels: [ctrl, control]
+  separator: "+"
+  split_path: data/split_results.pkl
+  split_fold: 1
+  preprocess: true            # raw 19264-gene h5ad -> HVG 5000 + perturbation genes
+  n_top_genes: 5000
+  preprocess_cache: true      # cache the HVG subset; HVG runs once
+  setting: additive
+  val_from_train_fraction: 0.05  # 仅切 ~9 个条件做监控, 最小化训练数据损失
+  samples_per_condition: 256     # 均衡采样, 避免小条件被重复采样 ~30 次
+
+graph:
+  go:
+    annotation_file: data/gene_ontology/go_annotations.gaf
+    namespace: biological_process
+    k_neighbors: 20
+
+spectral:
+  static: true            # S3: 静态谱位置编码
+
+model:
+  spectral_propagation: true   # 创新1: 谱扰动传播算子
+  propagation_channels: 8
+
+flow:
+  sigma: 0.2              # 降噪声, 让残差信号主导 (原 0.5)
+  ot_coupling: true       # 创新3: OT 耦合 control->perturbed
+  mmd_weight: 0.0         # 先用纯 flow matching
+  delta_corr_weight: 0.03 # 小权重直接对齐 pearson_delta 的扰动残差方向
+
+training:
+  batch_size: 512
+  max_steps: 200000
+  eval_every_steps: 5000
+  learning_rate: 0.0003   # 提高 (原 5e-5), 配合 warmup
+  eta_min: 0.000001
+  warmup_steps: 2000
+
+inference:
+  n_control_cells: 128    # 评估/监控生成更多预测细胞, 分布级指标更稳
+  ode_steps: 30           # OT 拉直轨迹, 30 步够用且更快
+  n_samples: 10
+  de_top_k: 20
+
+output:
+  output_dir: outputs/norman_additive

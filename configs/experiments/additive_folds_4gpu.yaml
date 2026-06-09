@@ -1,0 +1,37 @@
+# Main SpecFlow 0602 Norman additive multi-fold run.
+#
+# Dry run:
+#   python scripts/launch_experiments.py --spec configs/experiments/additive_folds_4gpu.yaml
+#
+# Launch four GPU queues:
+#   bash outputs/20260603_additive_folds_0602/launch_tmux.sh
+
+study_name: 20260603_additive_folds_0602
+output_root: outputs
+base_config: configs/norman.yaml
+
+experiments:
+  - name: full_additive
+    gpu: 0
+    fold: 0
+    seed: 42
+
+  - name: full_additive
+    gpu: 1
+    fold: 1
+    seed: 42
+
+  - name: full_additive
+    gpu: 2
+    fold: 2
+    seed: 42
+
+  - name: full_additive
+    gpu: 3
+    fold: 3
+    seed: 42
+
+  - name: full_additive
+    gpu: 0
+    fold: 4
+    seed: 42

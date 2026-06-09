@@ -1,0 +1,18 @@
+data:
+  dataset: combosciplex
+  h5ad_path: data/combosciplex.h5ad
+  condition_key: condition
+  control_labels: [ctrl, control, vehicle]
+  separator: "+"
+  target_map_path: data/combosciplex_target_genes.yaml
+  split_path: data/splits/combosciplex.json
+  preprocess: false
+
+graph:
+  go:
+    annotation_file: data/gene_ontology/go_annotations.gaf
+    namespace: biological_process
+    k_neighbors: 20
+
+output:
+  output_dir: outputs/combosciplex

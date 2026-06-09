@@ -1,0 +1,38 @@
+# Norman holdout full-model runs using the 0602 model settings.
+#
+# The split file must define the desired holdout protocol. If it is a folded
+# pickle/list, fold 0-4 are used. If it is a single JSON/YAML split, every fold
+# will resolve to the same split.
+
+study_name: 20260603_holdout_full_0602
+output_root: outputs
+base_config: configs/norman.yaml
+overrides:
+  data.setting: holdout
+  data.split_path: data/splits/norman_holdout.pkl
+
+experiments:
+  - name: holdout_full
+    gpu: 0
+    fold: 0
+    seed: 42
+
+  - name: holdout_full
+    gpu: 1
+    fold: 1
+    seed: 42
+
+  - name: holdout_full
+    gpu: 2
+    fold: 2
+    seed: 42
+
+  - name: holdout_full
+    gpu: 3
+    fold: 3
+    seed: 42
+
+  - name: holdout_full
+    gpu: 0
+    fold: 4
+    seed: 42

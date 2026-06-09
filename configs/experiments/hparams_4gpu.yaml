@@ -1,0 +1,65 @@
+# Four-GPU hyperparameter sweep for the 0602 baseline.
+#
+# Dry run:
+#   python scripts/launch_experiments.py --spec configs/experiments/hparams_4gpu.yaml
+
+study_name: 20260603_hparams_0602
+output_root: outputs
+base_config: configs/norman.yaml
+
+experiments:
+  - name: delta_001
+    gpu: 0
+    fold: 1
+    seed: 42
+    overrides:
+      flow.delta_corr_weight: 0.01
+
+  - name: delta_003
+    gpu: 1
+    fold: 1
+    seed: 42
+    overrides:
+      flow.delta_corr_weight: 0.03
+
+  - name: delta_005
+    gpu: 2
+    fold: 1
+    seed: 42
+    overrides:
+      flow.delta_corr_weight: 0.05
+
+  - name: sigma_015
+    gpu: 3
+    fold: 1
+    seed: 42
+    overrides:
+      flow.sigma: 0.15
+
+  - name: sigma_025
+    gpu: 0
+    fold: 1
+    seed: 42
+    overrides:
+      flow.sigma: 0.25
+
+  - name: prop_ch4
+    gpu: 1
+    fold: 1
+    seed: 42
+    overrides:
+      model.propagation_channels: 4
+
+  - name: prop_ch16
+    gpu: 2
+    fold: 1
+    seed: 42
+    overrides:
+      model.propagation_channels: 16
+
+  - name: infer_controls256
+    gpu: 3
+    fold: 1
+    seed: 42
+    overrides:
+      inference.n_control_cells: 256

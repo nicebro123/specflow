@@ -1,0 +1,20 @@
+# Core
+torch>=2.0
+numpy>=1.24
+scipy>=1.10
+PyYAML>=6.0
+
+# Single-cell data
+anndata>=0.10
+scanpy>=1.9
+h5py>=3.8
+
+# Graph & scientific
+scikit-learn>=1.2
+pandas>=2.0
+
+# Training utilities
+tqdm>=4.60
+
+# Testing
+pytest>=7.0

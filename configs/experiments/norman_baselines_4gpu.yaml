@@ -1,0 +1,72 @@
+# Local Control/Additive baselines under the same cell_eval protocol.
+#
+# Dry run:
+#   python scripts/launch_experiments.py --spec configs/experiments/norman_baselines_4gpu.yaml
+#
+# These jobs do not train a model; they generate pred.h5ad/real.h5ad and run cell_eval.
+
+study_name: 20260603_norman_baselines_0602
+output_root: outputs
+base_config: configs/norman.yaml
+train_script: scripts/evaluate_baseline.py
+
+experiments:
+  - name: control
+    gpu: 0
+    fold: 0
+    seed: 42
+    extra_args: [--baseline, control]
+
+  - name: additive
+    gpu: 0
+    fold: 0
+    seed: 42
+    extra_args: [--baseline, additive]
+
+  - name: control
+    gpu: 1
+    fold: 1
+    seed: 42
+    extra_args: [--baseline, control]
+
+  - name: additive
+    gpu: 1
+    fold: 1
+    seed: 42
+    extra_args: [--baseline, additive]
+
+  - name: control
+    gpu: 2
+    fold: 2
+    seed: 42
+    extra_args: [--baseline, control]
+
+  - name: additive
+    gpu: 2
+    fold: 2
+    seed: 42
+    extra_args: [--baseline, additive]
+
+  - name: control
+    gpu: 3
+    fold: 3
+    seed: 42
+    extra_args: [--baseline, control]
+
+  - name: additive
+    gpu: 3
+    fold: 3
+    seed: 42
+    extra_args: [--baseline, additive]
+
+  - name: control
+    gpu: 0
+    fold: 4
+    seed: 42
+    extra_args: [--baseline, control]
+
+  - name: additive
+    gpu: 0
+    fold: 4
+    seed: 42
+    extra_args: [--baseline, additive]
