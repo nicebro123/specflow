@@ -11,7 +11,7 @@ h5py>=3.8
 
 # Graph & scientific
 scikit-learn>=1.2
-pandas>=2.0
+pandas>=2.0,<3
 
 # Training utilities
 tqdm>=4.60

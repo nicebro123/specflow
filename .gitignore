@@ -12,6 +12,9 @@ dist/
 /cell-eval-outdir/
 /checkpoints/
 /cache/
+/data*.zip
+/outputs*.zip
+/cell-eval-outdir*.zip
 *.pt
 *.pth
 *.ckpt

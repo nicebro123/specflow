@@ -15,8 +15,13 @@ SpecFlow 从控制（未扰动）细胞状态出发，沿基因调控网络的�
 > **两条命令即可。第 1 条必须先执行，否则会报 `ModuleNotFoundError: No module named 'specflow'`。**
 
 ```bash
-# 1. 安装包（开发模式）+ 数据依赖 + cell_eval 评估依赖
-pip install -e ".[data]" && pip install cell-eval
+# 1. 安装包（开发模式）+ 数据依赖 + scDFM cell_eval 评估依赖
+pip install -e ".[data]"
+pip install cell-eval
+python - <<'PY'
+from cell_eval import MetricsEvaluator
+print("cell_eval import ok")
+PY
 
 # 2. 训练 + 自动用 cell_eval 评估（与 scDFM 对齐）
 python scripts/train.py --config configs/norman.yaml --output-dir outputs/run1
@@ -40,8 +45,12 @@ pip install -e ".[data]"
 # 加测试 / 开发
 pip install -e ".[data,dev]"
 
-# scDFM 对齐评估所需（单独安装）
+# scDFM 对齐评估所需（单独安装；安装后必须能 import cell_eval）
 pip install cell-eval
+python - <<'PY'
+from cell_eval import MetricsEvaluator
+print("cell_eval import ok")
+PY
 ```
 
 | 依赖组 | 包 | 用途 |
@@ -51,9 +60,9 @@ pip install cell-eval
 | `dev` | pytest | 测试 |
 | `cell-eval`（独立） | cell_eval, polars | **scDFM 对齐评估（必需）** |
 
-未安装 `cell-eval` 时，`--evaluation-protocol cell_eval` 会报错；可临时改用 `--evaluation-protocol internal` 走内置指标，或加 `--write-anndata-only` 只写 `pred.h5ad`/`real.h5ad`。
+未安装可用的 `cell_eval` 模块时，`--evaluation-protocol cell_eval` 会报错；可临时改用 `--evaluation-protocol internal` 走内置指标，或加 `--write-anndata-only` 只写 `pred.h5ad`/`real.h5ad`。如果 `pip install cell-eval` 后仍然 `ModuleNotFoundError`，说明当前 Python/依赖解析到了不可用版本，请安装 scDFM 使用的 `cell_eval` 包版本或切换到 Python 3.10/3.11 后重装。
 
-**系统要求**：Python ≥ 3.9，PyTorch ≥ 2.0（训练建议 CUDA，显存 ≥ 16GB）。
+**系统要求**：Python ≥ 3.9，PyTorch ≥ 2.0（训练建议 CUDA，显存 ≥ 16GB）。服务器复现实验建议使用 Python 3.10/3.11；`anndata/scanpy` 写 h5ad 依赖 Pandas 2.x，因此依赖中固定了 `pandas<3`。
 
 ---
 
@@ -405,7 +414,7 @@ scripts/
 先安装包：`pip install -e .`。
 
 **`ModuleNotFoundError: No module named 'cell_eval'`**
-安装评估依赖：`pip install cell-eval`。临时绕过可用 `--evaluation-protocol internal`。
+安装评估依赖并验证：`pip install cell-eval`，然后运行 `python -c "from cell_eval import MetricsEvaluator"`。临时绕过可用 `--evaluation-protocol internal`。
 
 **CUDA Out of Memory**
 config 里把 `batch_size` 降到 16 / 8；确认 `use_amp: true`。SignNet 默认已开 gradient checkpointing。
