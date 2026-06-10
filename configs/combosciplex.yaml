@@ -2,11 +2,15 @@ data:
   dataset: combosciplex
   h5ad_path: data/combosciplex.h5ad
   condition_key: condition
-  control_labels: [ctrl, control, vehicle]
+  control_labels: [ctrl, control, vehicle, control+control]
   separator: "+"
-  target_map_path: data/combosciplex_target_genes.yaml
-  split_path: data/splits/combosciplex.json
-  preprocess: false
+  target_map_path: configs/datasets/combosciplex_target_genes.yaml
+  split_path: configs/datasets/combosciplex_scdfm_default_split.json
+  preprocess: true
+  n_top_genes: 5000
+  preprocess_cache: true
+  val_from_train_fraction: 0.05
+  samples_per_condition: 256
 
 graph:
   go:

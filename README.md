@@ -73,6 +73,7 @@ PY
 ```text
 data/
   norman.h5ad                      # 单细胞扰动数据集（obs 含 condition 列）
+  combosciplex.h5ad                # ComboSciPlex 药物组合数据（可选扩展）
   split_results.pkl                # scDFM 的交叉验证 split（5 个 fold）
   gene_ontology/
     go_annotations.gaf             # GO 注释文件（GAF 格式，双图模式需要）
@@ -80,6 +81,7 @@ data/
 
 - **norman.h5ad**：来自 scPerturb / Norman et al. 2019（CRISPRa）。原始约 19264 基因、已 log 变换；`obs[condition]` 形如 `GENE+ctrl`（单扰动）或 `GENEA+GENEB`（组合扰动）。`preprocess: true` 时管线做 HVG（5000）+ 强制保留扰动靶基因 ≈ 5029 基因，并缓存到 `data/.specflow_cache/`（HVG 只跑一次）。
 - **split_results.pkl**：scDFM 官方 split 文件，5 个 fold 的列表，每个含 `train`/`test`（仅组合扰动；单扰动自动并入 train）。这是**对齐的关键**——训练和评估都从同一个文件、同一个 `split_fold` 取 split。
+- **combosciplex.h5ad**：来自 scDFM/ComboSciPlex 扩展实验。药物条件需要映射到基因 mask；仓库内版本化了 `configs/datasets/combosciplex_target_genes.yaml` 和 `configs/datasets/combosciplex_scdfm_default_split.json`，`configs/combosciplex.yaml` 直接读取它们。原始 h5ad 仍放在 `data/`，不随仓库分发。
 - **go_annotations.gaf**：从 [Gene Ontology](http://current.geneontology.org/annotations/) 下载。
 
 Norman holdout 使用一个可复现生成的 folded pickle。准备好 `data/norman.h5ad`

@@ -1,0 +1,78 @@
+# Drug-to-target map for the local ComboSciPlex extension.
+#
+# ComboSciPlex conditions are drug labels (for example
+# "Panobinostat+Crizotinib"), while SpecFlow needs a gene-aligned perturbation
+# mask. Keep this file small and versioned so Combo runs do not depend on an
+# untracked data/ sidecar.
+#
+# Targets are restricted to symbols present in data/combosciplex.h5ad var_names.
+Alvespimycin:
+  - HSP90AA1
+  - HSP90AB1
+Carmofur:
+  - TYMS
+  - ASAH1
+Cediranib:
+  - KDR
+  - FLT1
+  - FLT4
+  - PDGFRA
+  - PDGFRB
+  - KIT
+Crizotinib:
+  - ALK
+  - MET
+  - ROS1
+Curcumin:
+  - NFKB1
+  - RELA
+  - PTGS2
+Dacinostat:
+  - HDAC1
+  - HDAC2
+  - HDAC3
+  - HDAC6
+Danusertib:
+  - AURKA
+  - AURKB
+  - AURKC
+Dasatinib:
+  - ABL1
+  - SRC
+  - LCK
+  - YES1
+  - FYN
+  - KIT
+  - PDGFRB
+Givinostat:
+  - HDAC1
+  - HDAC2
+  - HDAC3
+Panobinostat:
+  - HDAC1
+  - HDAC2
+  - HDAC3
+  - HDAC6
+PCI-34051:
+  - HDAC8
+Pirarubicin:
+  - TOP2A
+  - TOP2B
+SRT1720:
+  - SIRT1
+SRT2104:
+  - SIRT1
+SRT3025:
+  - SIRT1
+Sorafenib:
+  - BRAF
+  - RAF1
+  - KDR
+  - FLT3
+  - PDGFRA
+  - PDGFRB
+  - KIT
+  - RET
+Tanespimycin:
+  - HSP90AA1
+  - HSP90AB1

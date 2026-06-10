@@ -1,0 +1,38 @@
+{
+  "train": [
+    "Alvespimycin+Pirarubicin",
+    "Cediranib+PCI-34051",
+    "Dacinostat+Danusertib",
+    "Dacinostat+Dasatinib",
+    "Dacinostat+PCI-34051",
+    "Givinostat+Carmofur",
+    "Givinostat+Cediranib",
+    "Givinostat+Crizotinib",
+    "Givinostat+Curcumin",
+    "Givinostat+Dasatinib",
+    "Givinostat+SRT1720",
+    "Givinostat+SRT2104",
+    "Givinostat+Sorafenib",
+    "Givinostat+Tanespimycin",
+    "Panobinostat+Alvespimycin",
+    "Panobinostat+Dasatinib",
+    "Panobinostat+PCI-34051",
+    "Panobinostat+SRT2104",
+    "Panobinostat+SRT3025",
+    "SRT3025+Cediranib",
+    "control+Dasatinib",
+    "control+Givinostat",
+    "control+Panobinostat",
+    "control+SRT2104"
+  ],
+  "val": [],
+  "test": [
+    "Panobinostat+Crizotinib",
+    "Panobinostat+Curcumin",
+    "Panobinostat+SRT1720",
+    "Panobinostat+Sorafenib",
+    "SRT2104+Alvespimycin",
+    "control+Alvespimycin",
+    "control+Dacinostat"
+  ]
+}
