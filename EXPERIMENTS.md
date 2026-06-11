@@ -242,6 +242,14 @@ python scripts/launch_experiments.py \
   --spec configs/experiments/holdout_ablation_4gpu.yaml
 ```
 
+After holdout full finishes, split its per-condition cell_eval results into
+the scDFM paper's Single / Double subsets:
+
+```bash
+python scripts/summarize_holdout_subsets.py \
+  --root outputs/20260603_holdout_full_0602
+```
+
 ComboSciPlex extension:
 
 ```bash

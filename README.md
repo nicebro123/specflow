@@ -190,6 +190,13 @@ python scripts/summarize_experiments.py \
   --output outputs/experiment_summary.csv
 ```
 
+Norman holdout 需要按 scDFM paper 的 `Single` / `Double` 子集单独汇总：
+
+```bash
+python scripts/summarize_holdout_subsets.py \
+  --root outputs/20260603_holdout_full_0602
+```
+
 **合并 scDFM paper-reported baseline**
 
 ```bash
