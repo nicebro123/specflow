@@ -8,12 +8,19 @@ import torch
 class EulerSampler:
     """Integrate the learned velocity field using explicit Euler steps."""
 
-    def __init__(self, model, sigma: float = 0.5, n_steps: int = 50) -> None:
+    def __init__(
+        self,
+        model,
+        sigma: float = 0.5,
+        n_steps: int = 50,
+        control_anchor: bool = True,
+    ) -> None:
         if n_steps < 1:
             raise ValueError("n_steps must be positive")
         self.model = model
         self.sigma = sigma
         self.n_steps = n_steps
+        self.control_anchor = control_anchor
 
     @torch.no_grad()
     def sample(
@@ -27,8 +34,9 @@ class EulerSampler:
             raise ValueError("n_samples must be positive")
         original_batch = ctrl_expr.shape[0]
         controls = ctrl_expr.repeat(n_samples, 1)
+        anchor = controls if self.control_anchor else torch.zeros_like(controls)
         masks = pert_mask.repeat(n_samples, 1)
-        state = controls + self.sigma * torch.randn_like(controls)
+        state = anchor + self.sigma * torch.randn_like(controls)
         spectral = self._spectral_for_samples(
             spectral_embedding, masks, ctrl_expr.shape[0], n_samples
         )
@@ -36,7 +44,7 @@ class EulerSampler:
         training = self.model.training
         self.model.eval()
         try:
-            state = self._integrate(state, controls, masks, spectral)
+            state = self._integrate(state, anchor, masks, spectral)
         finally:
             self.model.train(training)
         # Predictions live in log1p space (>= 0); clamp the unconstrained Euler
@@ -56,12 +64,13 @@ class EulerSampler:
         if n_samples < 1:
             raise ValueError("n_samples must be positive")
         controls = ctrl_expr.repeat(n_samples, 1)
+        anchor = controls if self.control_anchor else torch.zeros_like(controls)
         masks = pert_mask.repeat(n_samples, 1)
-        state = controls + self.sigma * torch.randn_like(controls)
+        state = anchor + self.sigma * torch.randn_like(controls)
         spectral = self._spectral_for_samples(
             spectral_embedding, masks, ctrl_expr.shape[0], n_samples
         )
-        result = self._integrate(state, controls, masks, spectral)
+        result = self._integrate(state, anchor, masks, spectral)
         return result.reshape(n_samples, ctrl_expr.shape[0], -1)
 
     def _spectral_for_samples(

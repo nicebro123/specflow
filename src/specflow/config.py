@@ -125,6 +125,7 @@ class ModelConfig:
     graph_mode: str = "dual"
     fusion_mode: str = "adaptive"
     scale_mode: str = "multi"
+    use_spectral_embedding: bool = True
     # Innovation 1: propagate the perturbation indicator over the fixed graph via
     # learnable spectral filters (per-gene "perturbation influence"), fed to the
     # velocity field. Realizes signal propagation without per-perturbation
@@ -146,6 +147,10 @@ class FlowConfig:
     # optimal transport (Hungarian) before flow matching, instead of random
     # pairing — straighter, more biologically meaningful trajectories.
     ot_coupling: bool = False
+    # Core control-anchor ablation switch. When disabled, flow matching and
+    # sampling start from an unconditioned zero anchor instead of measured
+    # control expression, and the model does not receive control expression.
+    control_anchor: bool = True
 
 
 @dataclass

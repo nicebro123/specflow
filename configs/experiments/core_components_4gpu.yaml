@@ -1,0 +1,50 @@
+# Core component ablations for the 0602 Norman additive protocol.
+#
+# This spec isolates the paper-facing components:
+#   - dual graph structure: GO-only, coexpression-only, and no graph
+#   - spectral embedding: zero spectral coordinates while preserving shape
+#   - control anchor: train/sample without measured control expression as anchor
+#
+# Launch:
+#   python scripts/launch_experiments.py --spec configs/experiments/core_components_4gpu.yaml
+#   bash outputs/20260612_core_components_0602/launch_tmux.sh
+
+study_name: 20260612_core_components_0602
+output_root: outputs
+base_config: configs/norman.yaml
+
+experiments:
+  - name: no_spectral_embedding
+    gpu: 0
+    fold: 1
+    seed: 42
+    overrides:
+      model.use_spectral_embedding: false
+
+  - name: no_control_anchor
+    gpu: 1
+    fold: 1
+    seed: 42
+    overrides:
+      flow.control_anchor: false
+
+  - name: go_only
+    gpu: 2
+    fold: 1
+    seed: 42
+    overrides:
+      model.graph_mode: go
+
+  - name: coexp_only
+    gpu: 3
+    fold: 1
+    seed: 42
+    overrides:
+      model.graph_mode: coexp
+
+  - name: graph_none
+    gpu: 0
+    fold: 1
+    seed: 42
+    overrides:
+      model.graph_mode: none

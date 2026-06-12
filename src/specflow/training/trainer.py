@@ -59,13 +59,18 @@ class SpecFlowTrainer:
         show_progress: bool = True,
         scheduler_interval: str = "epoch",
         ot_coupling: bool = False,
+        control_anchor: bool = True,
     ) -> None:
         self.device = device or torch.device(
             "cuda" if torch.cuda.is_available() else "cpu"
         )
         self.model = model.to(self.device)
         self.spectral_embedding = self._move_spectral(spectral_embedding)
-        self.flow = ControlAnchoredFlowMatching(sigma=sigma, ot_coupling=ot_coupling)
+        self.flow = ControlAnchoredFlowMatching(
+            sigma=sigma,
+            ot_coupling=ot_coupling,
+            control_anchor=control_anchor,
+        )
         self.optimizer = torch.optim.AdamW(
             self.model.parameters(),
             lr=learning_rate,
@@ -77,7 +82,12 @@ class SpecFlowTrainer:
         self.mmd_weight = mmd_weight
         self.mmd_interval = mmd_interval
         self.mmd_loss = MMDLoss()
-        self.mmd_sampler = EulerSampler(self.model, sigma=sigma, n_steps=mmd_steps)
+        self.mmd_sampler = EulerSampler(
+            self.model,
+            sigma=sigma,
+            n_steps=mmd_steps,
+            control_anchor=control_anchor,
+        )
         if delta_corr_weight < 0:
             raise ValueError("delta_corr_weight must be non-negative")
         self.delta_corr_weight = delta_corr_weight

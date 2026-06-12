@@ -298,6 +298,7 @@ class ExperimentRunner:
             dual_graph=mcfg.dual_graph,
             pert_dim=mcfg.pert_dim,
             graph_dim=mcfg.graph_dim,
+            use_spectral_embedding=mcfg.use_spectral_embedding,
             spectral_propagation=mcfg.spectral_propagation,
             propagation_channels=mcfg.propagation_channels,
         )
@@ -364,6 +365,7 @@ class ExperimentRunner:
             show_progress=training.show_progress,
             scheduler_interval="step" if step_mode else "epoch",
             ot_coupling=flow.ot_coupling,
+            control_anchor=flow.control_anchor,
         )
         return self.trainer
 
@@ -474,6 +476,7 @@ class ExperimentRunner:
             self.model,
             sigma=self.config.flow.sigma,
             n_steps=self.config.inference.ode_steps,
+            control_anchor=self.config.flow.control_anchor,
         )
         evaluator = SpecFlowEvaluator(sampler, cache.batch_embeddings)
         ema = self.trainer.ema if self.trainer is not None else None
@@ -660,6 +663,7 @@ class ExperimentRunner:
             self.model,
             sigma=self.config.flow.sigma,
             n_steps=self.config.inference.ode_steps,
+            control_anchor=self.config.flow.control_anchor,
         )
         evaluator = SpecFlowEvaluator(sampler, cache.batch_embeddings)
         results = evaluator.evaluate_conditions(
@@ -748,6 +752,7 @@ class ExperimentRunner:
             self.model,
             sigma=self.config.flow.sigma,
             n_steps=self.config.inference.ode_steps,
+            control_anchor=self.config.flow.control_anchor,
         )
         resolved_seed = self.config.data.seed if seed is None else seed
         torch.manual_seed(resolved_seed)  # reproducible ODE sampling noise

@@ -36,6 +36,7 @@ class SpecFlow(nn.Module):
         graph_mode: str = "dual",
         fusion_mode: str = "adaptive",
         scale_mode: str = "multi",
+        use_spectral_embedding: bool = True,
         spectral_propagation: bool = False,
         propagation_channels: int = 8,
     ) -> None:
@@ -43,6 +44,7 @@ class SpecFlow(nn.Module):
         self.n_genes = n_genes
         self.spectral_dim = spectral_dim
         self.dual_graph = dual_graph
+        self.use_spectral_embedding = use_spectral_embedding
         self.spectral_fusion = None
         if dual_graph:
             if go_components is None or coexp_components is None:
@@ -96,7 +98,10 @@ class SpecFlow(nn.Module):
 
     def _spectral_features(self, spectral_input, pert_mask: torch.Tensor):
         if torch.is_tensor(spectral_input):
-            return self._expand_spectral(spectral_input, pert_mask.shape[0]), {}
+            spectral = self._expand_spectral(spectral_input, pert_mask.shape[0])
+            if not self.use_spectral_embedding:
+                spectral = torch.zeros_like(spectral)
+            return spectral, {}
         if not isinstance(spectral_input, Mapping) or set(spectral_input) != {"go", "coexp"}:
             raise ValueError("spectral input must be a tensor or a {'go', 'coexp'} mapping")
         if self.spectral_fusion is None:
@@ -104,6 +109,8 @@ class SpecFlow(nn.Module):
         fused, auxiliary = self.spectral_fusion(
             spectral_input["go"], spectral_input["coexp"], pert_mask
         )
+        if not self.use_spectral_embedding:
+            return torch.zeros_like(fused), auxiliary
         return fused, auxiliary
 
     def encode_condition(

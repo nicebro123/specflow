@@ -49,11 +49,17 @@ def _ot_align_targets(ctrl_expr, target_expr, conditions):
 class ControlAnchoredFlowMatching:
     """Train a velocity model on paths starting near measured controls."""
 
-    def __init__(self, sigma: float = 0.5, ot_coupling: bool = False) -> None:
+    def __init__(
+        self,
+        sigma: float = 0.5,
+        ot_coupling: bool = False,
+        control_anchor: bool = True,
+    ) -> None:
         if sigma < 0:
             raise ValueError("sigma must be non-negative")
         self.sigma = sigma
         self.ot_coupling = ot_coupling
+        self.control_anchor = control_anchor
 
     def compute_loss(self, model, batch, spectral_embedding: torch.Tensor) -> FlowLossOutput:
         ctrl_expr = batch["ctrl_expr"]
@@ -67,15 +73,16 @@ class ControlAnchoredFlowMatching:
                 ctrl_expr, target_expr, batch.get("condition")
             )
 
+        anchor_expr = ctrl_expr if self.control_anchor else torch.zeros_like(ctrl_expr)
         time = torch.rand(
             ctrl_expr.shape[0], 1, device=ctrl_expr.device, dtype=ctrl_expr.dtype
         )
-        target_delta = target_expr - ctrl_expr
-        x_0 = ctrl_expr + self.sigma * torch.randn_like(ctrl_expr)
+        target_delta = target_expr - anchor_expr
+        x_0 = anchor_expr + self.sigma * torch.randn_like(ctrl_expr)
         x_t = (1.0 - time) * x_0 + time * target_expr
         target_velocity = target_expr - x_0
         predicted_velocity, _ = model(
-            x_t, time, ctrl_expr, pert_mask, spectral_embedding
+            x_t, time, anchor_expr, pert_mask, spectral_embedding
         )
         loss = F.mse_loss(predicted_velocity, target_velocity)
         return FlowLossOutput(loss, predicted_velocity, target_velocity, target_delta, x_t)
