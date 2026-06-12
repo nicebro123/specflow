@@ -1,7 +1,8 @@
 # Local Control/Additive baselines for ComboSciPlex.
 #
-# Additive uses observed train single-drug deltas. If held-out drugs have no
-# train single profile, the strict default raises an error.
+# Additive uses observed train single-drug deltas. ComboSciPlex has held-out
+# drugs without train single profiles, so missing single deltas are treated as
+# zero to keep the no-leakage baseline defined for every test combination.
 
 study_name: 20260603_combosciplex_baselines_0602
 output_root: outputs
@@ -17,4 +18,4 @@ experiments:
   - name: combosciplex_additive
     gpu: 1
     seed: 42
-    extra_args: [--baseline, additive]
+    extra_args: [--baseline, additive, --missing-single, zero]

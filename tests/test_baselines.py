@@ -64,6 +64,22 @@ def test_additive_baseline_missing_single_errors_by_default():
         )
 
 
+def test_additive_baseline_missing_single_zero_uses_available_deltas():
+    controls = np.ones((2, 3), dtype=np.float32)
+    pred = predict_additive_baseline(
+        "A+B",
+        controls,
+        {"A": np.array([1.0, 2.0, 3.0], dtype=np.float32)},
+        missing_single="zero",
+        clamp_min=None,
+    )
+
+    np.testing.assert_allclose(
+        pred,
+        np.array([[2.0, 3.0, 4.0], [2.0, 3.0, 4.0]], dtype=np.float32),
+    )
+
+
 def test_control_baseline_returns_copy():
     controls = np.ones((2, 3), dtype=np.float32)
     pred = predict_control_baseline(controls)

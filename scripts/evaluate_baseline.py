@@ -185,6 +185,8 @@ def main() -> None:
         "n_eval_genes": len(eval_gene_names),
         "n_train_conditions": len(train_conditions),
         "n_single_deltas": len(single_deltas),
+        "missing_single": args.missing_single,
+        "clamp_min": args.clamp_min,
         "test_conditions": test_conditions,
         **paths,
     }
