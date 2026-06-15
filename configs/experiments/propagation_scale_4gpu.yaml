@@ -1,0 +1,38 @@
+# Four-GPU sweep for spectral propagation strength.
+#
+# Dry run:
+#   PYTHONPATH=src /mnt/infini-data/test/quan_space/envs/aidd/bin/python \
+#     scripts/launch_experiments.py --spec configs/experiments/propagation_scale_4gpu.yaml
+#
+# Launch with generated tmux scripts:
+#   bash outputs/20260615_prop_scale_0602/launch_tmux.sh
+
+study_name: 20260615_prop_scale_0602
+output_root: outputs
+base_config: configs/norman.yaml
+python: /mnt/infini-data/test/quan_space/envs/aidd/bin/python
+
+defaults:
+  fold: 1
+  seed: 42
+
+experiments:
+  - name: prop_scale_000
+    gpu: 0
+    overrides:
+      model.propagation_scale: 0.0
+
+  - name: prop_scale_025
+    gpu: 1
+    overrides:
+      model.propagation_scale: 0.25
+
+  - name: prop_scale_050
+    gpu: 2
+    overrides:
+      model.propagation_scale: 0.5
+
+  - name: prop_scale_100
+    gpu: 3
+    overrides:
+      model.propagation_scale: 1.0
