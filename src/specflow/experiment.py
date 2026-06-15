@@ -301,6 +301,7 @@ class ExperimentRunner:
             use_spectral_embedding=mcfg.use_spectral_embedding,
             spectral_propagation=mcfg.spectral_propagation,
             propagation_channels=mcfg.propagation_channels,
+            propagation_scale=mcfg.propagation_scale,
         )
         if mcfg.dual_graph:
             kwargs.update(

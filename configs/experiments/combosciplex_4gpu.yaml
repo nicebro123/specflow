@@ -6,6 +6,7 @@ base_config: configs/combosciplex.yaml
 overrides:
   model.spectral_propagation: true
   model.propagation_channels: 8
+  model.propagation_scale: 1.0
   flow.sigma: 0.2
   flow.ot_coupling: true
   flow.mmd_weight: 0.0

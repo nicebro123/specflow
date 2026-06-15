@@ -63,3 +63,24 @@ experiments:
     seed: 42
     overrides:
       inference.n_control_cells: 256
+
+  - name: prop_scale_025
+    gpu: 0
+    fold: 1
+    seed: 42
+    overrides:
+      model.propagation_scale: 0.25
+
+  - name: prop_scale_050
+    gpu: 1
+    fold: 1
+    seed: 42
+    overrides:
+      model.propagation_scale: 0.5
+
+  - name: prop_scale_000
+    gpu: 2
+    fold: 1
+    seed: 42
+    overrides:
+      model.propagation_scale: 0.0

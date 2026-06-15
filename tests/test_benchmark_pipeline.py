@@ -92,6 +92,32 @@ def test_h5ad_adapter_and_grouped_batches_use_external_splits(tmp_path):
     assert all(len(set(batch["condition"])) == 1 for batch in batches)
 
 
+def test_experiment_runner_passes_propagation_scale_to_model(tmp_path):
+    h5ad, split_path, _ = _write_fixture(tmp_path)
+    config = SpecFlowConfig.from_dict(
+        {
+            "data": {
+                "h5ad_path": str(h5ad),
+                "condition_key": "condition",
+                "control_labels": ["ctrl"],
+                "split_path": str(split_path),
+            },
+            "model": {
+                "dual_graph": False,
+                "spectral_dim": 2,
+                "spectral_propagation": True,
+                "propagation_channels": 3,
+                "propagation_scale": 0.25,
+            },
+        }
+    )
+    runner = ExperimentRunner.from_config(config)
+
+    model = runner.build_model()
+
+    assert model.propagation_scale == 0.25
+
+
 def test_experiment_runner_trains_checkpoints_and_evaluates_tiny_h5ad(tmp_path):
     torch.manual_seed(31)
     h5ad, split_path, gaf = _write_fixture(tmp_path)

@@ -39,12 +39,17 @@ class SpecFlow(nn.Module):
         use_spectral_embedding: bool = True,
         spectral_propagation: bool = False,
         propagation_channels: int = 8,
+        propagation_scale: float = 1.0,
     ) -> None:
         super().__init__()
+        propagation_scale = float(propagation_scale)
+        if propagation_scale < 0:
+            raise ValueError("propagation_scale must be non-negative")
         self.n_genes = n_genes
         self.spectral_dim = spectral_dim
         self.dual_graph = dual_graph
         self.use_spectral_embedding = use_spectral_embedding
+        self.propagation_scale = propagation_scale
         self.spectral_fusion = None
         if dual_graph:
             if go_components is None or coexp_components is None:
@@ -155,7 +160,7 @@ class SpecFlow(nn.Module):
         condition = features["cell_condition"]
         attention = features["gene_attention"]
         propagation = (
-            self.propagation(pert_mask.float())
+            self.propagation(pert_mask.float()) * self.propagation_scale
             if self.propagation is not None
             else None
         )

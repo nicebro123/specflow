@@ -132,6 +132,15 @@ class ModelConfig:
     # eigendecomposition.
     spectral_propagation: bool = False
     propagation_channels: int = 8
+    # Multiplicative strength applied to learned spectral propagation features.
+    # 1.0 preserves the original behavior; 0.0 softly disables propagated
+    # perturbation influence while keeping graph embeddings and model shape.
+    propagation_scale: float = 1.0
+
+    def __post_init__(self) -> None:
+        self.propagation_scale = float(self.propagation_scale)
+        if self.propagation_scale < 0:
+            raise ValueError("model.propagation_scale must be non-negative")
 
 
 @dataclass
