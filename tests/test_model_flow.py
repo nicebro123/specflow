@@ -101,6 +101,35 @@ def test_spectral_propagation_scale_scales_forward_features():
     )
 
 
+def test_perturbation_gate_scales_propagation_channels_from_initial_gate():
+    torch.manual_seed(19)
+    model = SpecFlow(
+        8,
+        3,
+        d_model=16,
+        hidden_dim=24,
+        n_velocity_layers=1,
+        spectral_propagation=True,
+        propagation_channels=2,
+        propagation_scale=0.5,
+        propagation_gate="perturbation",
+        propagation_gate_init=0.25,
+    )
+    model.propagation.set_basis(torch.randn(8, 3), torch.tensor([0.1, 0.5, 1.0]))
+    recorder = _RecordingVelocityField()
+    model.velocity_field = recorder
+    ctrl = torch.randn(2, 8)
+    pert = torch.randint(0, 2, (2, 8)).float()
+    raw_propagation = model.propagation(pert)
+
+    model(ctrl, torch.tensor([0.2, 0.7]), ctrl, pert, torch.randn(8, 3))
+
+    assert model.propagation_gate_mode == "perturbation"
+    torch.testing.assert_close(
+        recorder.seen_propagation, raw_propagation * 0.5 * 0.25
+    )
+
+
 def test_zero_spectral_propagation_scale_keeps_shape_and_zeroes_features():
     torch.manual_seed(17)
     model = SpecFlow(
@@ -130,14 +159,27 @@ def test_zero_spectral_propagation_scale_keeps_shape_and_zeroes_features():
 def test_spectral_propagation_scale_config_defaults_and_validation():
     config = SpecFlowConfig.from_dict({"model": {"spectral_propagation": True}})
     assert config.model.propagation_scale == 1.0
+    assert config.model.propagation_gate == "none"
+    assert config.model.propagation_gate_init == 0.5
 
     with pytest.raises(ValueError, match="propagation_scale"):
         SpecFlowConfig.from_dict({"model": {"propagation_scale": -0.1}})
+    with pytest.raises(ValueError, match="propagation_gate"):
+        SpecFlowConfig.from_dict({"model": {"propagation_gate": "bad"}})
+    with pytest.raises(ValueError, match="propagation_gate_init"):
+        SpecFlowConfig.from_dict({"model": {"propagation_gate_init": 1.0}})
+    with pytest.raises(ValueError, match="spectral_propagation"):
+        SpecFlowConfig.from_dict({"model": {"propagation_gate": "perturbation"}})
 
 
 def test_negative_spectral_propagation_scale_is_rejected():
     with pytest.raises(ValueError, match="propagation_scale"):
         SpecFlow(8, 3, propagation_scale=-1.0)
+
+
+def test_perturbation_gate_requires_spectral_propagation():
+    with pytest.raises(ValueError, match="spectral_propagation"):
+        SpecFlow(8, 3, propagation_gate="perturbation")
 
 
 class _RecordingModel(torch.nn.Module):

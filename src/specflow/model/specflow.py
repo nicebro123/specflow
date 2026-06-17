@@ -1,5 +1,6 @@
 """SpecFlow velocity model with static or dual-graph spectral conditioning."""
 
+import math
 from typing import Mapping, Optional
 
 import torch
@@ -10,6 +11,13 @@ from specflow.model.gene_encoder import GeneTokenEncoder
 from specflow.model.spectral_fusion import DualGraphSpectralFusion
 from specflow.model.spectral_propagation import SpectralPropagation
 from specflow.model.velocity_field import VelocityField
+
+
+_PROPAGATION_GATE_MODES = {"none", "perturbation"}
+
+
+def _logit(value: float) -> float:
+    return math.log(value / (1.0 - value))
 
 
 class SpecFlow(nn.Module):
@@ -40,16 +48,29 @@ class SpecFlow(nn.Module):
         spectral_propagation: bool = False,
         propagation_channels: int = 8,
         propagation_scale: float = 1.0,
+        propagation_gate: str = "none",
+        propagation_gate_init: float = 0.5,
     ) -> None:
         super().__init__()
         propagation_scale = float(propagation_scale)
         if propagation_scale < 0:
             raise ValueError("propagation_scale must be non-negative")
+        propagation_gate = str(propagation_gate).lower()
+        if propagation_gate not in _PROPAGATION_GATE_MODES:
+            allowed = ", ".join(sorted(_PROPAGATION_GATE_MODES))
+            raise ValueError(f"propagation_gate must be one of: {allowed}")
+        propagation_gate_init = float(propagation_gate_init)
+        if not 0.0 < propagation_gate_init < 1.0:
+            raise ValueError("propagation_gate_init must be between 0 and 1")
+        if propagation_gate != "none" and not spectral_propagation:
+            raise ValueError("propagation_gate requires spectral_propagation=True")
         self.n_genes = n_genes
         self.spectral_dim = spectral_dim
         self.dual_graph = dual_graph
         self.use_spectral_embedding = use_spectral_embedding
         self.propagation_scale = propagation_scale
+        self.propagation_gate_mode = propagation_gate
+        self.propagation_gate_init = propagation_gate_init
         self.spectral_fusion = None
         if dual_graph:
             if go_components is None or coexp_components is None:
@@ -77,6 +98,11 @@ class SpecFlow(nn.Module):
             if spectral_propagation
             else None
         )
+        self.propagation_gate = None
+        if propagation_gate == "perturbation":
+            self.propagation_gate = nn.Linear(pert_dim, propagation_channels)
+            nn.init.zeros_(self.propagation_gate.weight)
+            nn.init.constant_(self.propagation_gate.bias, _logit(propagation_gate_init))
         prop_dim = propagation_channels if spectral_propagation else 0
         self.gene_encoder = GeneTokenEncoder(spectral_dim, d_model, pert_dim=pert_dim)
         self.cell_aggregator = AttentivePooling(d_model)
@@ -142,6 +168,17 @@ class SpecFlow(nn.Module):
             **fusion_auxiliary,
         }
 
+    def _propagation_features(
+        self, pert_mask: torch.Tensor, pert_embedding: torch.Tensor
+    ) -> Optional[torch.Tensor]:
+        if self.propagation is None:
+            return None
+        propagation = self.propagation(pert_mask.float()) * self.propagation_scale
+        if self.propagation_gate is not None:
+            gate = torch.sigmoid(self.propagation_gate(pert_embedding))
+            propagation = propagation * gate.to(propagation.dtype).unsqueeze(1)
+        return propagation
+
     def forward(
         self,
         x_t: torch.Tensor,
@@ -159,10 +196,8 @@ class SpecFlow(nn.Module):
         spectral = features["spectral_embedding"]
         condition = features["cell_condition"]
         attention = features["gene_attention"]
-        propagation = (
-            self.propagation(pert_mask.float()) * self.propagation_scale
-            if self.propagation is not None
-            else None
+        propagation = self._propagation_features(
+            pert_mask, features["pert_embedding"]
         )
         velocity = self.velocity_field(
             x_t,

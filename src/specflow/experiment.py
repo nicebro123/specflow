@@ -302,6 +302,8 @@ class ExperimentRunner:
             spectral_propagation=mcfg.spectral_propagation,
             propagation_channels=mcfg.propagation_channels,
             propagation_scale=mcfg.propagation_scale,
+            propagation_gate=mcfg.propagation_gate,
+            propagation_gate_init=mcfg.propagation_gate_init,
         )
         if mcfg.dual_graph:
             kwargs.update(

@@ -35,6 +35,8 @@ model:
   spectral_propagation: true   # 创新1: 谱扰动传播算子
   propagation_channels: 8
   propagation_scale: 1.0
+  propagation_gate: none
+  propagation_gate_init: 0.5
 
 flow:
   sigma: 0.2

@@ -136,11 +136,26 @@ class ModelConfig:
     # 1.0 preserves the original behavior; 0.0 softly disables propagated
     # perturbation influence while keeping graph embeddings and model shape.
     propagation_scale: float = 1.0
+    # Optional adaptive gate over propagation channels. "none" preserves the
+    # legacy fixed-scale behavior; "perturbation" learns a per-perturbation,
+    # per-channel gate from the perturbation embedding.
+    propagation_gate: str = "none"
+    propagation_gate_init: float = 0.5
 
     def __post_init__(self) -> None:
         self.propagation_scale = float(self.propagation_scale)
         if self.propagation_scale < 0:
             raise ValueError("model.propagation_scale must be non-negative")
+        self.propagation_gate = str(self.propagation_gate).lower()
+        if self.propagation_gate not in {"none", "perturbation"}:
+            raise ValueError("model.propagation_gate must be 'none' or 'perturbation'")
+        self.propagation_gate_init = float(self.propagation_gate_init)
+        if not 0.0 < self.propagation_gate_init < 1.0:
+            raise ValueError("model.propagation_gate_init must be between 0 and 1")
+        if self.propagation_gate != "none" and not self.spectral_propagation:
+            raise ValueError(
+                "model.propagation_gate requires model.spectral_propagation=true"
+            )
 
 
 @dataclass

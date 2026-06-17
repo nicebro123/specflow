@@ -108,6 +108,8 @@ def test_experiment_runner_passes_propagation_scale_to_model(tmp_path):
                 "spectral_propagation": True,
                 "propagation_channels": 3,
                 "propagation_scale": 0.25,
+                "propagation_gate": "perturbation",
+                "propagation_gate_init": 0.75,
             },
         }
     )
@@ -116,6 +118,9 @@ def test_experiment_runner_passes_propagation_scale_to_model(tmp_path):
     model = runner.build_model()
 
     assert model.propagation_scale == 0.25
+    assert model.propagation_gate_mode == "perturbation"
+    assert model.propagation_gate_init == 0.75
+    assert model.propagation_gate is not None
 
 
 def test_experiment_runner_trains_checkpoints_and_evaluates_tiny_h5ad(tmp_path):

@@ -1,0 +1,46 @@
+# Four-GPU sweep for perturbation-conditioned propagation gates.
+#
+# Dry run:
+#   PYTHONPATH=src /mnt/infini-data/test/quan_space/envs/aidd/bin/python \
+#     scripts/launch_experiments.py --spec configs/experiments/adaptive_propagation_gate_4gpu.yaml
+#
+# Launch with generated tmux scripts:
+#   bash outputs/20260617_adaptive_prop_gate_0602/launch_tmux.sh
+
+study_name: 20260617_adaptive_prop_gate_0602
+output_root: outputs
+base_config: configs/norman.yaml
+python: /mnt/infini-data/test/quan_space/envs/aidd/bin/python
+
+defaults:
+  fold: 1
+  seed: 42
+
+experiments:
+  - name: adaptive_gate_init025_scale100
+    gpu: 0
+    overrides:
+      model.propagation_gate: perturbation
+      model.propagation_gate_init: 0.25
+      model.propagation_scale: 1.0
+
+  - name: adaptive_gate_init050_scale100
+    gpu: 1
+    overrides:
+      model.propagation_gate: perturbation
+      model.propagation_gate_init: 0.5
+      model.propagation_scale: 1.0
+
+  - name: adaptive_gate_init075_scale100
+    gpu: 2
+    overrides:
+      model.propagation_gate: perturbation
+      model.propagation_gate_init: 0.75
+      model.propagation_scale: 1.0
+
+  - name: adaptive_gate_init050_scale050
+    gpu: 3
+    overrides:
+      model.propagation_gate: perturbation
+      model.propagation_gate_init: 0.5
+      model.propagation_scale: 0.5
