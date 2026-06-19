@@ -1,0 +1,28 @@
+# Norman unseen-gene holdout smoke test for contextual local propagation.
+
+study_name: 20260619_contextual_local_smoke
+output_root: outputs
+base_config: configs/norman_holdout.yaml
+python: /mnt/infini-data/test/quan_space/envs/aidd/bin/python
+
+overrides:
+  data.setting: holdout
+  data.split_path: data/splits/norman_holdout.pkl
+  model.perturbation_encoder: graph_pool
+  model.spectral_propagation: true
+  model.propagation_variant: contextual_local
+  model.propagation_channels: 2
+  model.propagation_scale: 1.0
+  model.propagation_gate: none
+  model.local_propagation_hops: 1
+  model.local_propagation_null_init: 0.9
+  training.batch_size: 512
+  training.max_steps: 2000
+  training.eval_every_steps: 500
+  inference.n_control_cells: 128
+
+experiments:
+  - name: contextual_local_holdout_smoke
+    gpu: 0
+    fold: 1
+    seed: 42

@@ -267,8 +267,14 @@ model:
   hidden_dim: 256
   spectral_dim: 64
   pert_dim: 32            # 扰动 embedding 维度（FiLM 注入用）
-  spectral_propagation: true   # 创新1: 谱扰动传播算子（见下）
-  propagation_channels: 8      # 传播滤波器通道数
+  perturbation_encoder: graph_pool
+  spectral_propagation: true
+  propagation_variant: contextual_local
+  propagation_channels: 2
+  propagation_scale: 1.0
+  propagation_gate: none
+  local_propagation_hops: 1
+  local_propagation_null_init: 0.9
 
 flow:
   sigma: 0.2              # 残差噪声尺度（降低让信号主导）
@@ -326,15 +332,18 @@ tmux new -d -s specflow "python scripts/train.py --config configs/norman.yaml --
 ## 模型架构
 
 ```
-              ┌─► pert_encoder ───────► e_p ─────────────┐ (FiLM + 拼入 token)
+              ┌─► graph_pool encoder ─► e_p ─────────────┐ (FiLM + 拼入 token)
 pert_mask s ──┤                                          │
-              └─► SpectralPropagation ─► h (B,G,C) ───┐   │  [创新1]
-                  h = Φ·diag(g_θ(λ))·Φᵀ·s            │   │
-ctrl_expr ──┐     (固定图谱基 + 可学习滤波器)          │   │
+              └─► GO/coexp 1-hop candidates ──────────┐   │
+ctrl_expr ──┐     (稀疏归一化双图, 仅 1-hop)          │   │
             ├─► 双图静态谱 (GO+coexp) ─► spectral      │   │
             │   (SignNet+多尺度+跨图融合, S3 固定)      │   │
             ▼                                          ▼   ▼
        GeneTokenEncoder [ctrl ‖ spectral ‖ mask ‖ e_p] ─► gene tokens
+                                      │
+                    null / GO / coexp contextual router
+                                      │
+                          zero-init propagation adapter
                                        │
                               AttentivePooling ─► cell condition
                                        │
@@ -345,20 +354,22 @@ ctrl_expr ──┐     (固定图谱基 + 可学习滤波器)          │   �
 
 **关键设计**：
 - **控制锚定残差流匹配**：流起点 `x_0 = ctrl + σε`，速度目标 `x_1 - x_0` 即扰动残差（低维、稀疏），比从噪声生成完整状态简单得多。
-- **扰动 embedding 强注入（FiLM, S1）**：`e_p = MLP(pert_mask)` 直接拼进 gene token，并对速度场每层做 feature-wise 调制（零初始化、恒等启动）。
+- **图感知扰动 embedding 强注入（FiLM, S1）**：`e_p` 从目标基因的 GO/共表达谱坐标集合池化得到，直接拼进 gene token，并对速度场每层做 feature-wise 调制。该编码不依赖目标基因在训练时是否作为扰动出现。
 - **静态谱位置编码（S3）**：双图随机游走拉普拉斯谱分解 + SignNet + 跨图融合，作为**固定的基因位置编码**（只算一次，不随扰动变）。避免"动态谱信号微弱 + 对 CRISPRa 方向错误"。`spectral.static: false` 可切回动态谱（消融）。
 
 ### 创新点（可切换，便于 A/B 消融）
 
-**创新 1 — 谱扰动传播算子（`model.spectral_propagation`）**
-把扰动指示向量 `s∈{0,1}^G` 在**固定图**上扩散到每个基因：
+**创新 1 — 上下文选择性局部传播（`propagation_variant: contextual_local`）**
 
-$$h = \Phi\,\mathrm{diag}(g_\theta(\lambda))\,\Phi^\top s \in \mathbb{R}^{G\times C}$$
+从归一化 GO 和共表达图分别构造一跳扰动候选，并由每个基因的 token 在 `null / GO / coexp` 三个 expert 间路由：
 
-`Φ,λ` 是基图（coexp）的特征向量/特征值（预计算一次），`g_θ` 是特征值上的小 MLP（学习扩散尺度），`h_i` = 基因 i "在扰动下游多深"。`h` 作为逐基因特征喂给速度场。
-- vs scDFM 二值 mask（扰动不传播）、vs GEARS GNN（固定跳数、过平滑）：谱滤波**全局、多尺度、无过平滑、无层数限制**，且 `O(G·k)` 便宜。
-- 正确实现了"扰动沿网络传播"的初衷（动态谱失败的那个目标）。
-- 关 / 切回 FiLM-only：`model.spectral_propagation: false`。
+$$p_i=\pi_{i,GO}(A_{GO}s)_i+\pi_{i,coexp}(A_{coexp}s)_i$$
+
+- 路由依赖 control 状态、图位置和扰动 embedding。
+- `null` expert 默认概率 0.9，传播 adapter 零初始化，模型从无传播行为稳定启动。
+- 直接扰动节点不会被传播分支重复注入。
+- `propagation_scale: 0` 是结构完全一致的无传播对照。
+- 原始全局谱滤波保留为 `propagation_variant: spectral`，用于旧 checkpoint 和消融复现。
 
 **创新 3 — OT 耦合流（`flow.ot_coupling`）**
 control 和 perturbed 是两个**未配对**群体。训练时在**每个条件组内**用最优传输（匈牙利算法，`scipy.linear_sum_assignment`）按表达相似度把 control 细胞配到最可能的 perturbed 细胞，替代随机配对，使流轨迹更直、更有生物意义。

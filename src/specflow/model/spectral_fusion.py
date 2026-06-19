@@ -1,6 +1,6 @@
 """Perturbation-conditioned multi-scale dual-graph spectral fusion."""
 
-from typing import Tuple
+from typing import Optional, Tuple
 
 import torch
 from torch import nn
@@ -192,15 +192,25 @@ class DualGraphSpectralFusion(nn.Module):
         graph_mode: str = "dual",
         fusion_mode: str = "adaptive",
         scale_mode: str = "multi",
+        perturbation_encoder: str = "legacy",
     ) -> None:
         super().__init__()
+        if perturbation_encoder not in {"legacy", "graph_pool"}:
+            raise ValueError(
+                "perturbation_encoder must be 'legacy' or 'graph_pool'"
+            )
         self.n_genes = n_genes
         self.go_components = go_components
         self.coexp_components = coexp_components
-        self.perturbation_encoder = nn.Sequential(
-            nn.Linear(n_genes, pert_dim),
-            nn.SiLU(),
-            nn.Linear(pert_dim, pert_dim),
+        self.perturbation_encoder_mode = perturbation_encoder
+        self.perturbation_encoder = (
+            nn.Sequential(
+                nn.Linear(n_genes, pert_dim),
+                nn.SiLU(),
+                nn.Linear(pert_dim, pert_dim),
+            )
+            if perturbation_encoder == "legacy"
+            else None
         )
         self.go_encoder = GraphScaleEncoder(
             go_components,
@@ -244,6 +254,7 @@ class DualGraphSpectralFusion(nn.Module):
         go_eigenvectors: torch.Tensor,
         coexp_eigenvectors: torch.Tensor,
         pert_mask: torch.Tensor,
+        perturbation_embedding: Optional[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, dict]:
         batch_size = pert_mask.shape[0]
         go_eigenvectors = self._batch_spectral(
@@ -252,7 +263,14 @@ class DualGraphSpectralFusion(nn.Module):
         coexp_eigenvectors = self._batch_spectral(
             coexp_eigenvectors, self.coexp_components, batch_size
         )
-        perturbation = self.perturbation_encoder(pert_mask.float())
+        if perturbation_embedding is None:
+            if self.perturbation_encoder is None:
+                raise ValueError(
+                    "graph_pool fusion requires an external perturbation embedding"
+                )
+            perturbation = self.perturbation_encoder(pert_mask.float())
+        else:
+            perturbation = perturbation_embedding
         go_embedding, go_scale = self.go_encoder(go_eigenvectors, perturbation)
         coexp_embedding, coexp_scale = self.coexp_encoder(
             coexp_eigenvectors, perturbation

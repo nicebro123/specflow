@@ -247,6 +247,10 @@ def evaluation_fields(run_dir: Path) -> dict[str, Any]:
         "n_controls": data.get("n_controls"),
         "n_conditions": data.get("n_conditions"),
     }
+    routing_summary = evaluation.get("routing_summary")
+    if isinstance(routing_summary, dict):
+        for key in ("null", "go", "coexp"):
+            output[f"routing_{key}"] = routing_summary.get(key)
     for key, value in extra.items():
         if isinstance(value, (str, int, float, bool)) or value is None:
             output[f"extra_{key}"] = value
@@ -409,6 +413,13 @@ def main() -> None:
         "cfg_model_propagation_scale",
         "cfg_model_propagation_gate",
         "cfg_model_propagation_gate_init",
+        "cfg_model_perturbation_encoder",
+        "cfg_model_propagation_variant",
+        "cfg_model_local_propagation_hops",
+        "cfg_model_local_propagation_null_init",
+        "routing_null",
+        "routing_go",
+        "routing_coexp",
         "cfg_model_graph_mode",
         "cfg_flow_sigma",
         "cfg_flow_ot_coupling",

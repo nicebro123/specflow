@@ -141,6 +141,15 @@ class ModelConfig:
     # per-channel gate from the perturbation embedding.
     propagation_gate: str = "none"
     propagation_gate_init: float = 0.5
+    # "legacy" embeds the gene-ID mask with Linear(n_genes, pert_dim).
+    # "graph_pool" pools sign-invariant GO/coexpression coordinates so unseen
+    # perturbation genes can be represented from graph structure.
+    perturbation_encoder: str = "legacy"
+    # Keep the original global spectral filters as the default. The contextual
+    # local variant routes one-hop GO/coexpression influence per gene.
+    propagation_variant: str = "spectral"
+    local_propagation_hops: int = 1
+    local_propagation_null_init: float = 0.9
 
     def __post_init__(self) -> None:
         self.propagation_scale = float(self.propagation_scale)
@@ -156,6 +165,58 @@ class ModelConfig:
             raise ValueError(
                 "model.propagation_gate requires model.spectral_propagation=true"
             )
+        self.perturbation_encoder = str(self.perturbation_encoder).lower()
+        if self.perturbation_encoder not in {"legacy", "graph_pool"}:
+            raise ValueError(
+                "model.perturbation_encoder must be 'legacy' or 'graph_pool'"
+            )
+        self.propagation_variant = str(self.propagation_variant).lower()
+        if self.propagation_variant not in {"spectral", "contextual_local"}:
+            raise ValueError(
+                "model.propagation_variant must be 'spectral' or 'contextual_local'"
+            )
+        self.local_propagation_hops = int(self.local_propagation_hops)
+        if self.local_propagation_hops != 1:
+            raise ValueError(
+                "model.local_propagation_hops currently supports only 1"
+            )
+        self.local_propagation_null_init = float(
+            self.local_propagation_null_init
+        )
+        if not 0.0 < self.local_propagation_null_init < 1.0:
+            raise ValueError(
+                "model.local_propagation_null_init must be between 0 and 1"
+            )
+        if self.perturbation_encoder == "graph_pool" and not self.dual_graph:
+            raise ValueError(
+                "model.perturbation_encoder='graph_pool' requires dual_graph=true"
+            )
+        if self.propagation_variant == "contextual_local":
+            if not self.spectral_propagation:
+                raise ValueError(
+                    "model.propagation_variant='contextual_local' requires "
+                    "spectral_propagation=true"
+                )
+            if not self.dual_graph:
+                raise ValueError(
+                    "model.propagation_variant='contextual_local' requires "
+                    "dual_graph=true"
+                )
+            if self.perturbation_encoder != "graph_pool":
+                raise ValueError(
+                    "contextual_local propagation requires "
+                    "model.perturbation_encoder='graph_pool'"
+                )
+            if self.propagation_gate != "none":
+                raise ValueError(
+                    "contextual_local propagation cannot use "
+                    "model.propagation_gate"
+                )
+            if self.propagation_channels != 2:
+                raise ValueError(
+                    "contextual_local propagation requires "
+                    "model.propagation_channels=2"
+                )
 
 
 @dataclass

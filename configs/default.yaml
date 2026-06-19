@@ -50,6 +50,15 @@ model:
   graph_mode: dual       # dual | go | coexp | none
   fusion_mode: adaptive  # adaptive | mean | concat
   scale_mode: multi      # multi | macro | micro
+  perturbation_encoder: legacy       # legacy | graph_pool
+  spectral_propagation: false
+  propagation_variant: spectral      # spectral | contextual_local
+  propagation_channels: 8
+  propagation_scale: 1.0
+  propagation_gate: none
+  propagation_gate_init: 0.5
+  local_propagation_hops: 1
+  local_propagation_null_init: 0.9
 
 flow:
   sigma: 0.5

@@ -1,0 +1,97 @@
+# Paired graph-aware encoder comparison using the same contextual architecture.
+# Scale 0 is the strict no-propagation control; scale 1 enables routed one-hop
+# GO/coexpression influence.
+
+study_name: 20260619_contextual_local_paired
+output_root: outputs
+python: /mnt/infini-data/test/quan_space/envs/aidd/bin/python
+
+defaults:
+  seed: 42
+
+experiments:
+  - name: holdout_graph_pool_no_propagation
+    config: configs/norman_holdout.yaml
+    gpu: 0
+    fold: 1
+    overrides:
+      data.setting: holdout
+      data.split_path: data/splits/norman_holdout.pkl
+      model.perturbation_encoder: graph_pool
+      model.spectral_propagation: true
+      model.propagation_variant: contextual_local
+      model.propagation_channels: 2
+      model.propagation_scale: 0.0
+      model.propagation_gate: none
+      model.local_propagation_hops: 1
+      model.local_propagation_null_init: 0.9
+
+  - name: holdout_contextual_local
+    config: configs/norman_holdout.yaml
+    gpu: 1
+    fold: 1
+    overrides:
+      data.setting: holdout
+      data.split_path: data/splits/norman_holdout.pkl
+      model.perturbation_encoder: graph_pool
+      model.spectral_propagation: true
+      model.propagation_variant: contextual_local
+      model.propagation_channels: 2
+      model.propagation_scale: 1.0
+      model.propagation_gate: none
+      model.local_propagation_hops: 1
+      model.local_propagation_null_init: 0.9
+
+  - name: combosciplex_graph_pool_no_propagation
+    config: configs/combosciplex.yaml
+    gpu: 2
+    overrides:
+      model.perturbation_encoder: graph_pool
+      model.spectral_propagation: true
+      model.propagation_variant: contextual_local
+      model.propagation_channels: 2
+      model.propagation_scale: 0.0
+      model.propagation_gate: none
+      model.local_propagation_hops: 1
+      model.local_propagation_null_init: 0.9
+      flow.sigma: 0.2
+      flow.ot_coupling: true
+      flow.mmd_weight: 0.0
+      flow.delta_corr_weight: 0.03
+      training.batch_size: 512
+      training.max_steps: 200000
+      training.eval_every_steps: 5000
+      training.learning_rate: 0.0003
+      training.eta_min: 0.000001
+      training.warmup_steps: 2000
+      inference.n_control_cells: 128
+      inference.ode_steps: 30
+      inference.n_samples: 10
+      inference.de_top_k: 20
+
+  - name: combosciplex_contextual_local
+    config: configs/combosciplex.yaml
+    gpu: 3
+    overrides:
+      model.perturbation_encoder: graph_pool
+      model.spectral_propagation: true
+      model.propagation_variant: contextual_local
+      model.propagation_channels: 2
+      model.propagation_scale: 1.0
+      model.propagation_gate: none
+      model.local_propagation_hops: 1
+      model.local_propagation_null_init: 0.9
+      flow.sigma: 0.2
+      flow.ot_coupling: true
+      flow.mmd_weight: 0.0
+      flow.delta_corr_weight: 0.03
+      training.batch_size: 512
+      training.max_steps: 200000
+      training.eval_every_steps: 5000
+      training.learning_rate: 0.0003
+      training.eta_min: 0.000001
+      training.warmup_steps: 2000
+      inference.n_control_cells: 128
+      inference.ode_steps: 30
+      inference.n_samples: 10
+      inference.de_top_k: 20
