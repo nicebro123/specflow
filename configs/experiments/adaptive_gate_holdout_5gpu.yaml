@@ -1,0 +1,40 @@
+# Five-fold Norman unseen-gene holdout with the selected adaptive gate.
+#
+# Each fold holds out 12 perturbation genes. Evaluation includes both unseen
+# single perturbations and double perturbations involving a held-out gene.
+
+study_name: 20260618_adaptive_gate_holdout_0602
+output_root: outputs
+base_config: configs/norman.yaml
+python: /mnt/infini-data/test/quan_space/envs/aidd/bin/python
+
+overrides:
+  data.setting: holdout
+  data.split_path: data/splits/norman_holdout.pkl
+  model.propagation_gate: perturbation
+  model.propagation_gate_init: 0.5
+  model.propagation_scale: 1.0
+
+defaults:
+  seed: 42
+
+experiments:
+  - name: adaptive_gate_holdout
+    gpu: 0
+    fold: 0
+
+  - name: adaptive_gate_holdout
+    gpu: 1
+    fold: 1
+
+  - name: adaptive_gate_holdout
+    gpu: 2
+    fold: 2
+
+  - name: adaptive_gate_holdout
+    gpu: 3
+    fold: 3
+
+  - name: adaptive_gate_holdout
+    gpu: 4
+    fold: 4
