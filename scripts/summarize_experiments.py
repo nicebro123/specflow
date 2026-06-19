@@ -185,6 +185,12 @@ def _config_fields(run_dir: Path) -> Dict[str, object]:
         "cfg_propagation_scale": model.get("propagation_scale"),
         "cfg_propagation_gate": model.get("propagation_gate"),
         "cfg_propagation_gate_init": model.get("propagation_gate_init"),
+        "cfg_perturbation_encoder": model.get("perturbation_encoder"),
+        "cfg_propagation_variant": model.get("propagation_variant"),
+        "cfg_local_propagation_hops": model.get("local_propagation_hops"),
+        "cfg_local_propagation_null_init": model.get(
+            "local_propagation_null_init"
+        ),
         "cfg_graph_mode": model.get("graph_mode"),
         "cfg_batch_size": training.get("batch_size"),
         "cfg_max_steps": training.get("max_steps"),
@@ -233,6 +239,10 @@ def _summarize_run(run_dir: Path, root: Path) -> Dict[str, object]:
         "n_controls": data_summary.get("n_controls"),
         "n_conditions": data_summary.get("n_conditions"),
     }
+    routing_summary = eval_summary.get("routing_summary")
+    if isinstance(routing_summary, dict):
+        for name in ("null", "go", "coexp"):
+            row[f"routing_{name}"] = routing_summary.get(name)
     graph_edges = data_summary.get("graph_edges")
     if isinstance(graph_edges, dict):
         for name, value in graph_edges.items():
@@ -306,6 +316,13 @@ def _fieldnames(rows: List[Dict[str, object]]) -> List[str]:
         "cfg_propagation_scale",
         "cfg_propagation_gate",
         "cfg_propagation_gate_init",
+        "cfg_perturbation_encoder",
+        "cfg_propagation_variant",
+        "cfg_local_propagation_hops",
+        "cfg_local_propagation_null_init",
+        "routing_null",
+        "routing_go",
+        "routing_coexp",
         "cfg_graph_mode",
         "n_test_conditions",
         "n_eval_genes",

@@ -6,6 +6,7 @@ import types
 import anndata as ad
 import numpy as np
 import pandas as pd
+import pytest
 import torch
 
 from specflow.config import SpecFlowConfig
@@ -121,6 +122,88 @@ def test_experiment_runner_passes_propagation_scale_to_model(tmp_path):
     assert model.propagation_gate_mode == "perturbation"
     assert model.propagation_gate_init == 0.75
     assert model.propagation_gate is not None
+
+
+def test_contextual_runner_trains_and_strictly_reloads_checkpoint(tmp_path):
+    torch.manual_seed(35)
+    h5ad, split_path, gaf = _write_fixture(tmp_path)
+    output = tmp_path / "contextual_outputs"
+    config = SpecFlowConfig.from_dict(
+        {
+            "data": {
+                "h5ad_path": str(h5ad),
+                "condition_key": "condition",
+                "control_labels": ["ctrl"],
+                "split_path": str(split_path),
+                "samples_per_condition": 4,
+                "seed": 35,
+            },
+            "graph": {
+                "go": {
+                    "annotation_file": str(gaf),
+                    "namespace": "biological_process",
+                    "k_neighbors": 3,
+                },
+                "coexp": {"k_neighbors": 2, "threshold": 0.1},
+            },
+            "spectral": {
+                "go_components": 2,
+                "coexp_components": 2,
+                "cache_dir": "cache",
+                "static": True,
+            },
+            "model": {
+                "dual_graph": True,
+                "spectral_dim": 4,
+                "d_model": 12,
+                "hidden_dim": 16,
+                "n_velocity_layers": 1,
+                "graph_dim": 8,
+                "pert_dim": 8,
+                "perturbation_encoder": "graph_pool",
+                "spectral_propagation": True,
+                "propagation_variant": "contextual_local",
+                "propagation_channels": 2,
+                "local_propagation_null_init": 0.9,
+            },
+            "flow": {"sigma": 0.1, "mmd_weight": 0.0},
+            "training": {
+                "batch_size": 4,
+                "max_steps": 2,
+                "eval_every_steps": 1,
+                "learning_rate": 0.001,
+                "warmup_steps": 0,
+                "show_progress": False,
+            },
+            "inference": {
+                "n_samples": 1,
+                "n_control_cells": 4,
+                "ode_steps": 2,
+                "de_top_k": 3,
+            },
+            "output": {
+                "output_dir": str(output),
+                "checkpoint_name": "contextual.pt",
+            },
+        }
+    )
+    runner = ExperimentRunner.from_config(config)
+
+    training = runner.train()
+    checkpoint = torch.load(
+        training["checkpoint"], map_location="cpu", weights_only=False
+    )
+    fresh_runner = ExperimentRunner.from_config(config)
+    fresh_runner.build_graphs()
+    fresh_runner.build_spectral_cache()
+    fresh_model = fresh_runner.build_model()
+    fresh_model.load_state_dict(checkpoint["model_state_dict"], strict=True)
+    evaluation = runner.evaluate()
+
+    assert training["steps_completed"] == 2
+    assert "routing_summary" in evaluation
+    assert set(evaluation["routing_summary"]) == {"null", "go", "coexp"}
+    assert sum(evaluation["routing_summary"].values()) == pytest.approx(1.0)
 
 
 def test_experiment_runner_trains_checkpoints_and_evaluates_tiny_h5ad(tmp_path):

@@ -131,3 +131,20 @@ def test_existing_artifact_with_changed_config_is_marked_stale(tmp_path, monkeyp
 
     assert run["status"] == "exists_stale_config"
     assert launcher._is_existing_status(run["status"])
+
+
+def test_shell_command_prefers_current_checkout_source(tmp_path, monkeypatch):
+    launcher = _load_launcher()
+    monkeypatch.chdir(tmp_path)
+    run_dir = tmp_path / "outputs" / "run"
+    run = {
+        "gpu": 2,
+        "command": ["python", "scripts/train.py"],
+        "run_dir": run_dir,
+        "log_path": run_dir / "train.log",
+    }
+
+    command = launcher._shell_command(run)
+
+    assert f"PYTHONPATH={tmp_path / 'src'}" in command
+    assert "CUDA_VISIBLE_DEVICES=2" in command

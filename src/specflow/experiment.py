@@ -304,6 +304,10 @@ class ExperimentRunner:
             propagation_scale=mcfg.propagation_scale,
             propagation_gate=mcfg.propagation_gate,
             propagation_gate_init=mcfg.propagation_gate_init,
+            perturbation_encoder=mcfg.perturbation_encoder,
+            propagation_variant=mcfg.propagation_variant,
+            local_propagation_hops=mcfg.local_propagation_hops,
+            local_propagation_null_init=mcfg.local_propagation_null_init,
         )
         if mcfg.dual_graph:
             kwargs.update(
@@ -320,7 +324,19 @@ class ExperimentRunner:
     def _setup_propagation(self) -> None:
         """Install the fixed base-graph spectrum into the propagation module."""
         model = self.model
-        if model is None or getattr(model, "propagation", None) is None:
+        if model is None:
+            return
+        contextual = getattr(model, "contextual_propagation", None)
+        if contextual is not None:
+            if self.graphs is None:
+                self.build_graphs()
+            contextual.set_graphs(
+                self.graphs["go"],
+                self.graphs["coexp"],
+            )
+            model.to(self.device)
+            return
+        if getattr(model, "propagation", None) is None:
             return
         cache = self.spectral_cache or self.build_spectral_cache()
         eigvecs, eigvals = cache.base_spectrum("coexp")
@@ -669,6 +685,7 @@ class ExperimentRunner:
             control_anchor=self.config.flow.control_anchor,
         )
         evaluator = SpecFlowEvaluator(sampler, cache.batch_embeddings)
+        self.model.reset_routing_stats()
         results = evaluator.evaluate_conditions(
             self.data,
             self.data.splits.get(partition, []),
@@ -677,6 +694,9 @@ class ExperimentRunner:
             de_top_k=self.config.inference.de_top_k,
             seed=self.config.data.seed,
         )
+        routing_summary = self.model.routing_summary()
+        if routing_summary:
+            results["routing_summary"] = routing_summary
         csv_path = self.output_dir / (
             "results.csv" if partition == "test" else f"results_{partition}.csv"
         )
@@ -767,6 +787,7 @@ class ExperimentRunner:
         )
         predicted = {}
         observed = {}
+        self.model.reset_routing_stats()
         for condition in test_conditions:
             control_indices = _sample_control_indices(
                 self.data.control_expression,
@@ -813,6 +834,9 @@ class ExperimentRunner:
             "test_conditions": test_conditions,
             **paths,
         }
+        routing_summary = self.model.routing_summary()
+        if routing_summary:
+            result["routing_summary"] = routing_summary
         if not write_anndata_only:
             result.update(
                 run_cell_eval(

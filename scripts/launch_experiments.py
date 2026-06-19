@@ -255,7 +255,9 @@ def _shell_command(run: Mapping[str, Any]) -> str:
     command = _quote_command(run["command"])
     log_path = shlex.quote(str(run["log_path"]))
     run_dir = shlex.quote(str(run["run_dir"]))
-    env_prefix = (
+    source_path = shlex.quote(str((Path.cwd() / "src").resolve()))
+    env_prefix = f"PYTHONPATH={source_path}${{PYTHONPATH:+:$PYTHONPATH}} "
+    env_prefix += (
         f"CUDA_VISIBLE_DEVICES={shlex.quote(str(run['gpu']))} "
         if run.get("gpu") is not None
         else ""
@@ -367,6 +369,13 @@ def _launch_run(run: Mapping[str, Any]) -> int:
     _write_yaml(run["config_path"], run["config"])
 
     env = os.environ.copy()
+    source_path = str((Path.cwd() / "src").resolve())
+    existing_pythonpath = env.get("PYTHONPATH")
+    env["PYTHONPATH"] = (
+        source_path + os.pathsep + existing_pythonpath
+        if existing_pythonpath
+        else source_path
+    )
     if run.get("gpu") is not None:
         env["CUDA_VISIBLE_DEVICES"] = str(run["gpu"])
     with run["log_path"].open("w", encoding="utf-8") as log:

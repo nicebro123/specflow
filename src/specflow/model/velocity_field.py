@@ -52,10 +52,12 @@ class VelocityField(nn.Module):
         n_layers: int,
         pert_dim: int = 0,
         prop_dim: int = 0,
+        contextual_prop_dim: int = 0,
     ) -> None:
         super().__init__()
         self.pert_dim = pert_dim
         self.prop_dim = prop_dim
+        self.contextual_prop_dim = contextual_prop_dim
         self.time_embedding = TimeEmbedding(d_model)
         self.local_projection = nn.Sequential(
             nn.Linear(spectral_dim + 3 + prop_dim, hidden_dim),
@@ -63,6 +65,12 @@ class VelocityField(nn.Module):
         )
         cond_dim = d_model * 2 + pert_dim
         self.global_projection = nn.Linear(cond_dim, hidden_dim)
+        self.contextual_prop_projection = None
+        if contextual_prop_dim:
+            self.contextual_prop_projection = nn.Linear(
+                contextual_prop_dim, hidden_dim, bias=False
+            )
+            nn.init.zeros_(self.contextual_prop_projection.weight)
         self.blocks = nn.ModuleList(
             [ResidualMLPBlock(hidden_dim) for _ in range(n_layers)]
         )
@@ -81,6 +89,7 @@ class VelocityField(nn.Module):
         pert_mask: torch.Tensor,
         pert_embedding: Optional[torch.Tensor] = None,
         propagation: Optional[torch.Tensor] = None,
+        contextual_propagation: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         time_feature = self.time_embedding(time)
         cond_parts = [cell_condition, time_feature]
@@ -102,6 +111,14 @@ class VelocityField(nn.Module):
             local_parts.append(propagation)
         local_feature = torch.cat(local_parts, dim=-1)
         hidden = self.local_projection(local_feature) + global_feature.unsqueeze(1)
+        if self.contextual_prop_dim:
+            if contextual_propagation is None:
+                raise ValueError(
+                    "contextual_propagation is required when contextual_prop_dim > 0"
+                )
+            hidden = hidden + self.contextual_prop_projection(
+                contextual_propagation
+            )
         for block, film in zip(self.blocks, self.films):
             hidden = block(hidden)
             hidden = film(hidden, cond)

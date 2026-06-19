@@ -1,0 +1,73 @@
+# Remaining adaptive-gate coverage on GPUs 5-7.
+#
+# Norman additive fold 1 is already complete in the gate-selection study.
+# GPUs 5 and 6 queue the other four folds; GPU 7 validates the selected gate
+# on ComboSciPlex.
+
+study_name: 20260618_adaptive_gate_remaining_0602
+output_root: outputs
+python: /mnt/infini-data/test/quan_space/envs/aidd/bin/python
+
+defaults:
+  seed: 42
+
+experiments:
+  - name: adaptive_gate_additive
+    config: configs/norman.yaml
+    gpu: 5
+    fold: 0
+    overrides:
+      model.propagation_gate: perturbation
+      model.propagation_gate_init: 0.5
+      model.propagation_scale: 1.0
+
+  - name: adaptive_gate_additive
+    config: configs/norman.yaml
+    gpu: 6
+    fold: 2
+    overrides:
+      model.propagation_gate: perturbation
+      model.propagation_gate_init: 0.5
+      model.propagation_scale: 1.0
+
+  - name: adaptive_gate_combosciplex_full
+    config: configs/combosciplex.yaml
+    gpu: 7
+    overrides:
+      model.spectral_propagation: true
+      model.propagation_channels: 8
+      model.propagation_gate: perturbation
+      model.propagation_gate_init: 0.5
+      model.propagation_scale: 1.0
+      flow.sigma: 0.2
+      flow.ot_coupling: true
+      flow.mmd_weight: 0.0
+      flow.delta_corr_weight: 0.03
+      training.batch_size: 512
+      training.max_steps: 200000
+      training.eval_every_steps: 5000
+      training.learning_rate: 0.0003
+      training.eta_min: 0.000001
+      training.warmup_steps: 2000
+      inference.n_control_cells: 128
+      inference.ode_steps: 30
+      inference.n_samples: 10
+      inference.de_top_k: 20
+
+  - name: adaptive_gate_additive
+    config: configs/norman.yaml
+    gpu: 5
+    fold: 3
+    overrides:
+      model.propagation_gate: perturbation
+      model.propagation_gate_init: 0.5
+      model.propagation_scale: 1.0
+
+  - name: adaptive_gate_additive
+    config: configs/norman.yaml
+    gpu: 6
+    fold: 4
+    overrides:
+      model.propagation_gate: perturbation
+      model.propagation_gate_init: 0.5
+      model.propagation_scale: 1.0
