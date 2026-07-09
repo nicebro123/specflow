@@ -1,0 +1,177 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{url}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue,
+  citecolor=blue,
+  urlcolor=blue
+}
+
+\newcommand{\method}{SpecFlow}
+\newcommand{\todo}[1]{\textcolor{red}{\textbf{TODO:} #1}}
+\newcommand{\needconfirm}[1]{\textcolor{orange}{\textbf{Need confirmation:} #1}}
+\DeclareRobustCommand{\code}[1]{\texttt{\detokenize{#1}}}
+
+\title{Repository-Grounded Audit Supplement for \method{}}
+\author{Anonymous Authors}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section{Scope and Evidence Boundary}
+
+This supplement converts the repository audit in \code{paper\_draft\_specflow.md} into LaTeX form.
+It is grounded in the local repository at \code{C:/Users/Administrator/Desktop/specflow}.
+The current checkout is a ZIP-extracted directory rather than a git clone.
+The local repository contains source code, README, configs, tests, experiment launch specs, and bundled paper-reported baseline metrics, but it does not contain \code{data/}, \code{outputs/}, trained checkpoints, logs, \code{results.csv}, or \code{agg\_results.csv}.
+
+Therefore, this supplement distinguishes three categories:
+\begin{enumerate}[leftmargin=*]
+  \item facts directly supported by source code or configuration files;
+  \item plausible interpretations of the method that require experimental validation;
+  \item claims that cannot be made until run artifacts are available.
+\end{enumerate}
+
+\section{Repository-Grounded Method Report}
+
+\subsection{Problem Solved}
+
+\method{} targets single-cell perturbation response prediction.
+Given unperturbed control cells and a perturbation condition represented as one or more targeted genes, the model predicts the post-perturbation gene-expression distribution.
+The scientifically central target is the perturbation effect relative to control expression, not merely expression reconstruction.
+
+\subsection{Inputs and Outputs}
+
+The data pipeline and model use:
+\begin{itemize}[leftmargin=*]
+  \item \code{ctrl\_expr}: control-cell expression with shape $(B,G)$;
+  \item \code{pert\_expr}: perturbed-cell expression with shape $(B,G)$ during training;
+  \item \code{pert\_mask}: binary gene-aligned perturbation mask with shape $(B,G)$;
+  \item \code{condition}: perturbation condition string;
+  \item \code{spectral\_embedding}: either a tensor of spectral coordinates or a mapping with \code{go} and \code{coexp} eigenvectors.
+\end{itemize}
+
+The model predicts a per-gene velocity vector.
+During inference, an Euler sampler integrates the learned velocity field from a noisy control state to a predicted perturbed expression state.
+
+\subsection{Training Flow}
+
+The control-anchored flow objective in \code{src/specflow/flow/flow\_matching.py} uses:
+\[
+x_0 = x_c + \sigma\epsilon,
+\qquad
+x_t = (1-t)x_0 + tx_1,
+\qquad
+u_t = x_1 - x_0.
+\]
+The model minimizes mean-squared error between predicted and target velocity.
+If \code{flow.ot\_coupling} is enabled, the implementation reorders perturbed samples within each condition using a Hungarian assignment before computing targets.
+
+The trainer additionally supports:
+\begin{itemize}[leftmargin=*]
+  \item \code{delta\_corr\_weight}: condition-grouped perturbation-delta correlation loss;
+  \item \code{mmd\_weight}: optional MMD loss;
+  \item EMA weights, AMP, cosine schedule, and warmup.
+\end{itemize}
+
+\subsection{Core Modules}
+
+\begin{table}[h]
+\centering
+\caption{Core repository modules used by \method{}.}
+\begin{tabular}{p{0.24\linewidth}p{0.64\linewidth}}
+\toprule
+Area & Files \\
+\midrule
+Data & \code{src/specflow/data/dataset.py}, \code{benchmark.py}, \code{preprocessing.py} \\
+Graphs & \code{graph/go\_graph.py}, \code{coexp\_graph.py}, \code{spectral\_embedding.py}, \code{perturbation\_aware.py} \\
+Model & \code{model/specflow.py}, \code{spectral\_fusion.py}, \code{gene\_encoder.py}, \code{velocity\_field.py}, \code{contextual\_propagation.py} \\
+Flow & \code{flow/flow\_matching.py}, \code{ode\_solver.py}, \code{mmd\_loss.py} \\
+Training & \code{training/trainer.py}, \code{training/ema.py}, \code{experiment.py} \\
+Evaluation & \code{evaluation/scdfm\_protocol.py}, \code{evaluator.py}, \code{results.py}, \code{metrics.py} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Supported Method Claims}
+
+The following claims are currently supported as implementation facts:
+\begin{enumerate}[leftmargin=*]
+  \item \method{} implements control-anchored flow matching for perturbation prediction.
+  \item \method{} implements GO and coexpression graph construction.
+  \item \method{} computes spectral gene embeddings and fuses dual graph features.
+  \item \method{} supports condition-wise OT coupling.
+  \item \method{} supports a delta-correlation auxiliary loss.
+  \item \method{} can write scDFM-style \code{pred.h5ad} and \code{real.h5ad} evaluation files.
+\end{enumerate}
+
+The following claims require experiments:
+\begin{enumerate}[leftmargin=*]
+  \item graph spectra improve performance;
+  \item OT coupling improves performance;
+  \item delta-correlation training improves perturbation-effect metrics;
+  \item \method{} outperforms any baseline;
+  \item the contextual-local propagation extension is superior to the default spectral propagation path.
+\end{enumerate}
+
+\section{Potential Narrative Mismatches}
+
+\paragraph{README versus default configs.}
+The README's architecture section emphasizes \code{graph\_pool} and \code{contextual\_local} propagation.
+However, \code{configs/norman.yaml} and \code{configs/norman\_holdout.yaml} do not enable those options; they inherit the default \code{legacy} perturbation encoder and \code{spectral} propagation variant.
+\needconfirm{The final paper must choose the actual main method variant and make README, configs, and manuscript consistent.}
+
+\paragraph{Evaluation alignment.}
+The code supports scDFM-compatible evaluation, but the local checkout lacks the external data, split files, and run artifacts needed to verify that all experiments are actually aligned.
+
+\paragraph{Mechanistic visualizations.}
+The experiment plan discusses UMAPs, top-DE gene plots, and graph propagation heatmaps, but no figure outputs exist locally.
+
+\section{Experiment Plan}
+
+The minimal evidence package required for a submission-ready paper is:
+\begin{enumerate}[leftmargin=*]
+  \item Norman additive full model, fold 0--4;
+  \item Control and Additive baselines, fold 0--4;
+  \item Norman holdout full model;
+  \item holdout Single/Double result split;
+  \item core ablations: \code{graph\_none}, \code{no\_spectral\_propagation}, \code{no\_ot\_coupling}, \code{no\_delta\_corr}, \code{no\_control\_anchor};
+  \item extra metrics: L2, Pearson Delta-hat, Pearson Delta-hat20;
+  \item mechanistic visualizations;
+  \item runtime and resource reporting.
+\end{enumerate}
+
+\section{Current Code/Test Audit}
+
+\code{python -m pytest -q} currently reports 57 passed and 2 failed in this Windows environment.
+The failures are:
+\begin{enumerate}[leftmargin=*]
+  \item \code{tests/test\_dataset\_protocol\_configs.py::test\_holdout\_configs\_use\_generated\_folded\_pickle}: UTF-8 YAML is read with the locale default encoding, causing a GBK \code{UnicodeDecodeError} on Chinese comments.
+  \item \code{tests/test\_launch\_experiments.py::test\_shell\_command\_prefers\_current\_checkout\_source}: the test expects a generated shell command to include \code{PYTHONPATH=<tmp>/src}, but the observed command string does not include that exact fragment.
+\end{enumerate}
+These failures do not affect the LaTeX conversion, but they are relevant to repository reproducibility.
+
+\section{Submission-Readiness TODO List}
+
+\begin{itemize}[leftmargin=*]
+  \item \todo{Add required datasets and split files.}
+  \item \todo{Run main additive and holdout experiments.}
+  \item \todo{Run baselines under the same split, gene set, and evaluation protocol.}
+  \item \todo{Run component ablations.}
+  \item \todo{Fill all paper tables from verified run artifacts.}
+  \item \todo{Fix or document the two current pytest failures.}
+  \item \todo{Resolve the main-method version ambiguity.}
+  \item \todo{Add citations and replace placeholder related-work text.}
+  \item \todo{Remove or explicitly retain all TODO markers before submission.}
+\end{itemize}
+
+\end{document}

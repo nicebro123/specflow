@@ -1,0 +1,485 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{url}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue,
+  citecolor=blue,
+  urlcolor=blue
+}
+
+\newcommand{\method}{SpecFlow}
+\newcommand{\todo}[1]{\textcolor{red}{\textbf{TODO:} #1}}
+\newcommand{\needconfirm}[1]{\textcolor{orange}{\textbf{Need confirmation:} #1}}
+\DeclareRobustCommand{\code}[1]{\texttt{\detokenize{#1}}}
+
+\title{\method{}: Control-Anchored Spectral Flow Matching for Unpaired Single-Cell Perturbation Prediction}
+\author{Anonymous Authors}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Predicting single-cell responses to genetic and chemical perturbations is essential for studying cellular regulation under interventions.
+However, perturbation datasets typically provide unpaired populations of control and perturbed cells rather than cell-level before-and-after trajectories, making transition-based modeling noisy under random control-target pairings.
+This difficulty is amplified for combinatorial and held-out perturbations, where a model must exploit gene-level structure rather than memorize condition labels.
+We propose \method{}, a control-anchored flow-matching framework that learns perturbation residual dynamics from measured control cells while conditioning the velocity field on Gene Ontology and control-derived coexpression spectra.
+\method{} combines three mechanisms: control-anchored flow matching to preserve source cell state, graph-spectral conditioning to encode functional and coexpression relationships among genes, and condition-wise optimal-transport coupling with delta-correlation training to reduce pairing noise and align with perturbation-effect metrics.
+We design an scDFM-aligned evaluation protocol on Norman additive and holdout splits, with control/additive baselines, component ablations, and planned mechanistic visualizations.
+\todo{Insert verified \method{} results after running the provided scripts and collecting \code{agg\_results.csv} artifacts.}
+\end{abstract}
+
+\section{Introduction}
+
+Single-cell perturbation assays make it possible to observe how cellular expression states change after genetic or chemical interventions.
+These assays are useful for studying regulatory programs and for prioritizing perturbations, especially when only a subset of possible single-gene and combinatorial interventions can be measured experimentally.
+The deployment constraint is practical: a perturbation predictor should generalize from observed perturbation populations to unseen or combinatorial conditions while preserving cell-state information from real control cells.
+
+Existing perturbation predictors can be viewed as learning a conditional map from a control population and a perturbation descriptor to a perturbed expression distribution.
+This formulation is effective only when the model can infer a meaningful transition despite the fact that perturbation datasets are generally \emph{unpaired}: control cells and perturbed cells are sampled from separate populations, not from matched before-and-after observations.
+Randomly pairing a control cell with a perturbed cell creates a noisy velocity target, while representing perturbations as condition identifiers can underuse functional relationships among targeted and downstream genes.
+Thus, the failure dimension we focus on is not generic predictive accuracy; it is the lack of a structurally informed and control-preserving transition model for unpaired perturbation populations.
+
+Addressing this limitation is challenging for two reasons.
+First, unpaired cell populations do not provide ground-truth trajectories, so a transition model trained with arbitrary pairings may learn batch-level artifacts rather than perturbation effects.
+Second, perturbation response is gene-structured: combinatorial and held-out perturbations require information about where target genes sit in functional and coexpression networks.
+A method that addresses only the first challenge may preserve control states but fail to generalize structurally; a method that addresses only the second may encode gene structure but still train on implausible transitions.
+
+Our key observation is that a perturbation response can be modeled as a \emph{residual flow from a measured control state}, and the direction of this flow should be constrained by gene-structure information.
+Measured controls are not disposable noise samples: they provide the cell-state anchor from which a perturbation effect should be added.
+At the same time, perturbation masks identify target genes whose influence should be interpreted through functional and coexpression relationships.
+This suggests a simple design principle: learn a flow from control to perturbed expression, but condition the velocity field on graph-spectral gene coordinates and reduce unpaired-transition noise during training.
+
+Motivated by this observation, we propose \method{}.
+\method{} first builds GO-derived and control-derived coexpression gene graphs, computes random-walk Laplacian spectral coordinates, and fuses them into per-gene structural features.
+It then learns a conditional velocity field that starts near measured control expression and predicts the residual path toward perturbed expression.
+During training, \method{} optionally aligns control and perturbed samples within the same perturbation condition using a Hungarian optimal-transport assignment and adds a delta-correlation objective that directly targets perturbation-effect direction.
+These components correspond to the two technical challenges: control anchoring and OT coupling address unpaired trajectories, while graph-spectral conditioning addresses structure-aware perturbation generalization.
+
+\begin{figure}[t]
+\centering
+\fbox{
+\begin{minipage}{0.92\linewidth}
+\textbf{Placeholder for Figure 1.}
+Left: random control-perturbed pairings produce noisy transition arrows in expression space.
+Right: \method{} anchors flows at measured control cells and orients the velocity field with GO/coexpression spectral structure.
+\todo{Replace with schematic or result-grounded visualization.}
+\end{minipage}}
+\caption{Motivating contrast for \method{}. The figure should show why unpaired random transitions are noisy and how control anchoring plus gene-structure conditioning addresses the failure mode.}
+\label{fig:motivation}
+\end{figure}
+
+The repository supports an scDFM-aligned evaluation plan on Norman additive and holdout protocols, with local control/additive baselines, external split loading, cell-eval-compatible outputs, and ablation configurations.
+However, the local checkout does not include data or completed \method{} runs, so this draft cannot claim empirical superiority.
+The experiments section is therefore written as a matched evidence plan, with TODO markers for all result claims.
+
+Our contributions are:
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Problem framing.} We identify unpaired transition noise and missing gene-structure conditioning as two coupled obstacles in single-cell perturbation response prediction.
+  \item \textbf{Method.} We propose \method{}, a control-anchored flow-matching model whose velocity field is conditioned on perturbation masks and GO/coexpression spectral gene features.
+  \item \textbf{Training and evaluation protocol.} We implement condition-wise OT coupling, perturbation-delta correlation training, and an scDFM-compatible evaluation pipeline with planned additive, holdout, baseline, and ablation experiments. \todo{Convert this protocol contribution into an empirical contribution after verified runs are available.}
+\end{enumerate}
+
+\section{Related Work}
+
+\paragraph{Single-cell perturbation prediction.}
+Prior work on perturbation prediction aims to model cellular response under genetic or chemical interventions.
+The bundled baseline table references Control, Additive, scGPT, Geneformer, GEARS, CPA, STATE, CellFlow, and scDFM.
+These methods represent relevant comparison families: simple non-parametric baselines, perturbation-specific models, foundation-model baselines, and flow/diffusion-style models.
+\todo{Add precise citations and method-specific descriptions after confirming the bibliography.}
+
+Our work differs by focusing on a control-anchored transition objective for unpaired perturbation populations and by injecting GO/coexpression spectral structure into the velocity model.
+Unlike a pure condition-label approach, \method{} represents perturbations as gene-aligned masks interpreted through graph spectra.
+Unlike a generic distribution matcher, \method{} starts from measured control expression and learns residual dynamics.
+
+\paragraph{Flow matching for conditional generation.}
+Flow matching learns a velocity field that transports samples from a source distribution to a target distribution.
+\method{} uses this idea conditionally: the source is not pure noise but a noisy version of measured control expression.
+This design is intended to preserve source cell-state information while learning perturbation-induced residual change.
+\todo{Add citations for conditional flow matching, rectified flow, and biological flow/diffusion models.}
+
+\paragraph{Gene-structure representations.}
+Gene perturbation effects are mediated by biological structure.
+\method{} uses two graph sources implemented in the repository: a Gene Ontology graph constructed from shared GO terms and a coexpression graph estimated from control cells.
+It then computes random-walk Laplacian spectral embeddings and applies sign-invariant encoders before graph fusion.
+\todo{Add citations for GO-based gene representations, coexpression graph modeling, graph neural perturbation models, and spectral positional encodings.}
+
+\paragraph{Benchmarking and evaluation protocols.}
+Evaluation protocol matters because small differences in split, gene set, or metric computation can make perturbation results incomparable.
+\method{} writes \code{pred.h5ad} and \code{real.h5ad} files and invokes \code{cell\_eval}, matching the scDFM-style evaluation interface.
+\todo{Cite scDFM and the exact cell-eval protocol.}
+
+\section{Problem Setting}
+
+Let $G$ be the number of modeled genes.
+A control cell is represented by $x_c \in \mathbb{R}^{G}$.
+A perturbation condition $p$ is represented by a binary target mask $s_p \in \{0,1\}^{G}$, where $s_{p,g}=1$ indicates that gene $g$ is directly targeted.
+For each condition $p$, the dataset provides a population of perturbed cells $\mathcal{X}_p = \{x_p^{(i)}\}$ and a shared control population $\mathcal{X}_c = \{x_c^{(j)}\}$.
+
+The goal is to learn a conditional generator
+\[
+\hat{x}_p \sim q_\theta(\cdot \mid x_c, s_p)
+\]
+that maps sampled control cells and perturbation masks to predicted perturbed expression.
+The setting is unpaired: there is no observed trajectory from a particular $x_c^{(j)}$ to a particular $x_p^{(i)}$.
+
+The primary biological quantity is the perturbation effect:
+\[
+\Delta_p = \mathbb{E}[x_p \mid p] - \mathbb{E}[x_c],
+\qquad
+\hat{\Delta}_p = \mathbb{E}[\hat{x}_p \mid p] - \mathbb{E}[x_c].
+\]
+The repository emphasizes \code{pearson\_delta}, the Pearson correlation between $\Delta_p$ and $\hat{\Delta}_p$, as the main effect-level metric.
+Additional configured or planned metrics include MSE, MAE, DE Spearman, distributional similarity (DS), L2, Pearson Delta-hat, and Pearson Delta-hat20.
+
+This differs from standard paired transition modeling because the true source-target cell correspondence is unavailable.
+It also differs from condition-only prediction because the perturbation descriptor is gene-aligned and can be interpreted through biological graph structure.
+
+\section{Method}
+
+\subsection{Overview}
+
+\begin{figure}[t]
+\centering
+\fbox{
+\begin{minipage}{0.92\linewidth}
+\textbf{Placeholder for Figure 2.}
+Pipeline: graph construction $\rightarrow$ spectral gene features $\rightarrow$ control-anchored flow matching with optional OT coupling $\rightarrow$ Euler sampling and cell-eval outputs.
+\todo{Replace with a clean method diagram.}
+\end{minipage}}
+\caption{Overview of \method{}. Each block corresponds to one challenge: unpaired trajectories, structure-aware perturbation conditioning, and metric-aligned training.}
+\label{fig:method}
+\end{figure}
+
+Given control expression $x_c$, perturbation mask $s_p$, and gene graphs, \method{}:
+\begin{enumerate}[leftmargin=*]
+  \item builds GO and coexpression graph spectra;
+  \item encodes per-gene structural features and perturbation features;
+  \item predicts a velocity field over expression space;
+  \item trains the velocity with control-anchored flow matching, optionally after condition-wise OT coupling;
+  \item samples perturbed cells by Euler integration from a noisy control anchor.
+\end{enumerate}
+
+\begin{table}[t]
+\centering
+\caption{Challenge-to-component mapping in \method{}.}
+\label{tab:challenge_component}
+\begin{tabular}{p{0.30\linewidth}p{0.30\linewidth}p{0.28\linewidth}}
+\toprule
+Challenge & Component & Code evidence \\
+\midrule
+No paired cell trajectories & Control-anchored flow matching & \code{flow\_matching.py} \\
+Random pairing creates noisy velocity targets & Condition-wise OT coupling & \code{\_ot\_align\_targets} \\
+Perturbations require gene-structure context & GO/coexpression spectral conditioning & \code{graph/*.py}, \code{spectral\_fusion.py} \\
+Metrics focus on perturbation effects & Delta-correlation auxiliary loss & \code{SpecFlowTrainer.\_delta\_correlation\_loss} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Graph-Spectral Gene Conditioning}
+
+The goal of graph-spectral conditioning is to give the velocity field a gene-level structural coordinate system.
+Directly treating a perturbation as an arbitrary condition token is insufficient for held-out or combinatorial perturbations because it does not expose functional proximity or coexpression relationships among genes.
+
+\method{} constructs two graphs.
+The GO graph connects genes using shared Gene Ontology terms and a top-$k$ Jaccard graph.
+The coexpression graph is built from absolute Pearson correlations among genes in control cells.
+For each graph, \method{} computes random-walk Laplacian spectral coordinates by solving the symmetric normalized Laplacian and converting to a random-walk basis.
+
+Let $U^{GO}$ and $U^{coexp}$ be the two spectral embeddings.
+Because eigenvector signs are arbitrary, \method{} applies SignNet encoders before fusion.
+\code{DualGraphSpectralFusion} then performs macro/micro scale fusion and cross-graph fusion, producing per-gene structural features:
+\[
+Z_p = \mathrm{Fuse}(U^{GO}, U^{coexp}, s_p).
+\]
+This design encourages perturbation predictions to depend on where targeted genes lie in functional and expression-derived graph geometry.
+\todo{Validate this claim with graph-none, GO-only, coexpression-only, and no-spectral-embedding ablations.}
+
+\subsection{Perturbation-Conditioned Velocity Field}
+
+The goal of the velocity field is to predict how every gene's expression should move at interpolation state $x_t$.
+For each gene $g$, the model builds a token from local control expression, spectral features, mask value, and a perturbation embedding:
+\[
+h_g = \mathrm{GeneTokenEncoder}(x_{c,g}, Z_{p,g}, s_{p,g}, e_p).
+\]
+An attentive pooling module aggregates gene tokens into a cell-level condition vector.
+The velocity field combines local per-gene features $(x_{t,g}, x_{c,g}, Z_{p,g}, s_{p,g})$ with global conditioning from the pooled cell representation, time embedding, and perturbation embedding.
+Residual MLP blocks and FiLM-style modulation produce the final velocity:
+\[
+v_\theta(x_t,t,x_c,s_p,Z_p) \in \mathbb{R}^{G}.
+\]
+
+The default Norman configs enable spectral propagation and use the default \code{legacy} perturbation encoder plus \code{spectral} propagation variant.
+The repository also implements a \code{graph\_pool} perturbation encoder and \code{contextual\_local} propagation route, but these are not enabled in the default Norman configs.
+\needconfirm{Choose whether the paper's final main method is the 0602 default protocol or the newer contextual-local variant.}
+
+\subsection{Control-Anchored Flow Matching}
+
+The goal of control anchoring is to preserve measured source cell state while learning perturbation residuals.
+\method{} samples a time $t \sim \mathcal{U}(0,1)$ and defines:
+\[
+x_0 = x_c + \sigma\epsilon,
+\qquad
+x_t = (1-t)x_0 + t x_1,
+\qquad
+u_t = x_1 - x_0,
+\]
+where $x_1$ is a perturbed target sample and $\epsilon$ is Gaussian noise.
+The primary loss is:
+\[
+\mathcal{L}_{FM}
+= \mathbb{E}\left[
+\left\|v_\theta(x_t,t,x_c,s_p,Z_p) - u_t\right\|_2^2
+\right].
+\]
+The first term in the path definition keeps the source near a real control cell, while the target velocity learns the residual effect needed to reach perturbed expression.
+Thus, minimizing this objective encourages a control-preserving perturbation flow rather than unconditional expression generation.
+
+\subsection{Condition-Wise OT Coupling}
+
+The goal of OT coupling is to reduce noisy training velocities caused by arbitrary control-target pairings.
+Within each perturbation condition in a minibatch, \method{} computes pairwise squared distances between control and perturbed expression vectors and solves a Hungarian assignment.
+The perturbed samples are reordered according to this assignment before the flow target is computed.
+
+This coupling does not recover true cell-level trajectories, which are unobserved.
+It is a minibatch approximation intended to make training pairs more expression-compatible.
+\todo{Validate its contribution with \code{flow.ot\_coupling=false} ablations.}
+
+\subsection{Delta-Correlation Training}
+
+The main biological metric compares perturbation-effect directions rather than only per-cell reconstruction.
+\method{} therefore optionally adds a condition-grouped correlation loss:
+\[
+\mathcal{L}_{\Delta}
+= 1 -
+\mathrm{corr}\left(
+\mathbb{E}_{i \in p}[v_\theta^{(i)}],
+\mathbb{E}_{i \in p}[x_1^{(i)} - x_0^{(i)}]
+\right).
+\]
+The complete implemented training objective is:
+\[
+\mathcal{L}
+= \mathcal{L}_{FM}
++ \lambda_{\Delta}\mathcal{L}_{\Delta}
++ \lambda_{MMD}\mathcal{L}_{MMD},
+\]
+where the default Norman config sets $\lambda_{\Delta}=0.03$ and $\lambda_{MMD}=0$.
+The delta term aligns training with perturbation-effect correlation; the MMD term exists in code but is disabled in the default Norman configs.
+\todo{Validate with no-delta-correlation and MMD-on ablations.}
+
+\subsection{Training and Inference Algorithm}
+
+\begin{table}[t]
+\centering
+\caption{Logic-level training and inference procedure. This table summarizes method logic rather than implementation details such as caching, checkpointing, AMP, and EMA.}
+\label{tab:algorithm}
+\begin{tabular}{p{0.08\linewidth}p{0.82\linewidth}}
+\toprule
+Step & Procedure \\
+\midrule
+1 & Build GO and coexpression gene graphs. \\
+2 & Compute graph spectral embeddings and fused gene features. \\
+3 & Sample a perturbation condition, control cells, and perturbed cells. \\
+4 & If OT coupling is enabled, reorder perturbed cells by Hungarian assignment within condition. \\
+5 & Sample $t$ and construct $x_0$, $x_t$, and target velocity $x_1-x_0$. \\
+6 & Predict velocity conditioned on $x_c$, $s_p$, and graph spectra. \\
+7 & Update parameters with flow-matching loss and optional delta-correlation loss. \\
+8 & At inference, initialize from $x_c+\sigma\epsilon$, integrate with Euler updates, and write prediction artifacts for cell-eval. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Experiments}
+
+Following the AAAI oral-paper guide, experiments should be organized around research questions rather than a single leaderboard table.
+The current repository supports the following plan, but local \method{} results are not present.
+
+\subsection{Research Questions}
+
+\paragraph{Q1: Effectiveness.}
+Does \method{} improve perturbation-effect prediction on scDFM-aligned Norman additive splits compared with simple and strong baselines?
+\todo{Run \method{} fold 0--4 and compare against clearly labeled Control, Additive, and paper-reported or rerun model baselines.}
+
+\paragraph{Q2: Generalization.}
+Does \method{} generalize to held-out single and double perturbations?
+\todo{Run \code{configs/norman\_holdout.yaml} and summarize Single/Double subsets.}
+
+\paragraph{Q3: Necessity.}
+Which components are necessary: graph spectra, spectral propagation, OT coupling, delta-correlation loss, and control anchoring?
+\todo{Run component ablations.}
+
+\paragraph{Q4: Practicality and interpretability.}
+What are the computational costs, and do predictions/propagation patterns support the intended mechanism?
+\todo{Report runtime/memory and generate UMAP, delta scatter, top-DE boxplot, and graph propagation figures.}
+
+\subsection{Experimental Setup}
+
+\paragraph{Benchmarks.}
+The primary benchmark is Norman CRISPRa perturbation prediction under additive and holdout protocols.
+The repository also includes ComboSciPlex configuration and drug-to-target mapping files.
+\todo{Confirm exact dataset statistics after data are available.}
+
+\paragraph{Splits.}
+\code{configs/norman.yaml} uses \code{data/split\_results.pkl} for scDFM-aligned additive folds.
+\code{configs/norman\_holdout.yaml} uses \code{data/splits/norman\_holdout.pkl}, generated by \code{scripts/build\_holdout\_split.py}.
+\todo{Verify split files in the run environment.}
+
+\paragraph{Baselines.}
+Local scripts support Control and Additive baselines.
+The bundled \code{paper\_baselines/scdfm\_reported\_metrics.csv} includes paper-reported metrics for multiple baselines, but these are not local reruns.
+\todo{Decide whether main tables use rerun baselines or clearly labeled paper-reported values.}
+
+\paragraph{Metrics.}
+Main metrics should include Pearson Delta, MSE, MAE, DE Spearman, and DS.
+Additional scDFM-aligned metrics include L2, Pearson Delta-hat, and Pearson Delta-hat20.
+
+\paragraph{Implementation.}
+The default Norman config uses \code{batch\_size=512}, \code{max\_steps=200000}, \code{learning\_rate=0.0003}, \code{sigma=0.2}, \code{ot\_coupling=true}, \code{delta\_corr\_weight=0.03}, and \code{inference.ode\_steps=30}.
+\todo{Add hardware, software, random seed, and wall-clock details from logs.}
+
+\subsection{Main Results: Norman Additive}
+
+Table~\ref{tab:norman_additive} should answer Q1.
+It must report mean and standard deviation across folds, not a single best run.
+Because no local \method{} outputs exist, all \method{} cells remain TODO.
+
+\begin{table}[t]
+\centering
+\caption{Norman additive main results under scDFM-aligned evaluation. Higher is better for Pearson Delta, DE Spearman, and DS; lower is better for MSE and MAE. All \method{} entries must be filled from local \code{agg\_results.csv} files.}
+\label{tab:norman_additive}
+\begin{tabular}{llccccc}
+\toprule
+Method & Source & Pearson Delta & MSE & MAE & DE Spearman & DS \\
+\midrule
+Control & TODO/rerun & TODO & TODO & TODO & TODO & TODO \\
+Additive & TODO/rerun & TODO & TODO & TODO & TODO & TODO \\
+scDFM & paper/rerun? & TODO & TODO & TODO & TODO & TODO \\
+CellFlow & paper/rerun? & TODO & TODO & TODO & TODO & TODO \\
+\method{} & local rerun & TODO & TODO & TODO & TODO & TODO \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The result paragraph should only be written after data are available.
+\todo{Replace with: Table~\ref{tab:norman_additive} shows that [verified result].}
+
+\subsection{Generalization: Norman Holdout}
+
+Table~\ref{tab:norman_holdout} should answer Q2 by reporting held-out single and double perturbation results.
+This is more important for a strong paper than additive-only interpolation.
+
+\begin{table}[t]
+\centering
+\caption{Norman holdout generalization.}
+\label{tab:norman_holdout}
+\begin{tabular}{llccccc}
+\toprule
+Subset & Method & Pearson Delta & MSE & MAE & DE Spearman & DS \\
+\midrule
+Single & \method{} & TODO & TODO & TODO & TODO & TODO \\
+Double & \method{} & TODO & TODO & TODO & TODO & TODO \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\todo{Compare to scDFM paper-reported or rerun holdout baselines with source labels.}
+
+\subsection{Ablation Study}
+
+Table~\ref{tab:ablations} should answer Q3.
+Each row maps to a specific claim.
+
+\begin{table}[t]
+\centering
+\caption{Component ablations on Norman additive or holdout.}
+\label{tab:ablations}
+\begin{tabular}{lccccc}
+\toprule
+Variant & Pearson Delta & MSE & MAE & DE Spearman & DS \\
+\midrule
+Full \method{} & TODO & TODO & TODO & TODO & TODO \\
+w/o graph & TODO & TODO & TODO & TODO & TODO \\
+w/o spectral propagation & TODO & TODO & TODO & TODO & TODO \\
+w/o OT coupling & TODO & TODO & TODO & TODO & TODO \\
+w/o delta correlation & TODO & TODO & TODO & TODO & TODO \\
+w/o control anchor & TODO & TODO & TODO & TODO & TODO \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Ablation conclusions must be component-specific.
+For example, do not write ``all components are useful'' unless every row supports it.
+
+\subsection{Robustness, Efficiency, and Visualization}
+
+\paragraph{Robustness.}
+ComboSciPlex can test whether the mechanism extends beyond Norman CRISPRa.
+\todo{Run \code{configs/experiments/combosciplex\_4gpu.yaml} only after Norman results are stable.}
+
+\paragraph{Efficiency.}
+Report training time, inference time, GPU memory, and overhead from OT coupling.
+\todo{Collect from logs.}
+
+\paragraph{Visualization.}
+Figure~\ref{fig:motivation} should show the motivating failure mode.
+Additional figures should show predicted versus true perturbation deltas, UMAP or top-DE gene behavior, and graph-propagation heatmaps if spectral/contextual propagation is claimed as mechanistic evidence.
+
+\section{Discussion and Limitations}
+
+This draft's main limitation is evidential: the local repository does not include completed experiments.
+Thus, the current paper can describe \method{} and its evaluation plan, but it cannot claim performance improvements.
+
+The second limitation is method-version ambiguity.
+The README highlights \code{graph\_pool} perturbation encoding and \code{contextual\_local} propagation, while the default Norman configs use the legacy perturbation encoder and spectral propagation.
+Before submission, the paper, README, and configs must agree on the final main method.
+
+Third, \method{} depends on external biological structure.
+GO annotations may be incomplete, and coexpression graphs estimated from control cells may be dataset-specific.
+This does not invalidate the core control-anchored flow formulation, but it affects the scope of graph-structure claims.
+
+Fourth, minibatch OT coupling is an approximation to unobserved cell matching.
+It reduces arbitrary pairing by expression distance, but it does not prove biological lineage or trajectory correctness.
+
+Fifth, the velocity field is mainly a local per-gene MLP with global conditioning and propagation features.
+It may not capture all higher-order gene interactions that a full cross-gene attention model could represent.
+
+\section{Conclusion}
+
+We studied unpaired single-cell perturbation response prediction, where models must infer perturbation effects without observed cell-level trajectories.
+\method{} addresses this setting by anchoring flow matching at measured control cells, conditioning the velocity field on GO/coexpression spectral gene structure, and reducing random-pairing noise through condition-wise OT coupling and delta-correlation training.
+The repository provides a concrete implementation and an scDFM-aligned evaluation plan.
+The next step is empirical: run the planned additive, holdout, baseline, ablation, robustness, and visualization experiments, then replace all TODO placeholders with verified evidence.
+
+\section*{AAAI-Oral Guide Compliance Checklist}
+
+\paragraph{Sharp problem.}
+Current framing: unpaired perturbation populations create noisy transition targets, and perturbation response requires gene-structure conditioning.
+
+\paragraph{Mechanistic insight.}
+Current insight: perturbation response should be modeled as a control-anchored residual flow whose direction is conditioned by gene graph spectra.
+
+\paragraph{Minimal method.}
+Current modules are graph-spectral conditioning, control-anchored flow matching, OT coupling, and delta-correlation training.
+The final paper should keep each module tied to a challenge to avoid looking like a module stack.
+
+\paragraph{Matched evidence.}
+Main evidence is still missing: additive results, holdout results, ablations, robustness, efficiency, and visualizations.
+The manuscript is therefore not submission-ready.
+
+\paragraph{Claims allowed now.}
+\method{} implements control-anchored flow matching, GO/coexpression spectral conditioning, condition-wise OT coupling, delta-correlation training, and scDFM-style output generation.
+
+\paragraph{Claims not allowed yet.}
+Do not claim that \method{} outperforms baselines, generalizes better to held-out perturbations, proves graph spectra/OT/delta effectiveness, or is efficient/robust/practical without runtime and result evidence.
+
+\end{document}
