@@ -1,0 +1,64 @@
+# Complete matched default GeneGeoFlow component ablations on Norman additive.
+# The default model uses gene geometry without explicit spectral propagation.
+
+study_name: 20260711_default_component_additive_remaining_0602
+output_root: outputs
+base_config: configs/norman.yaml
+python: /mnt/infini-data/test/quan_space/envs/aidd/bin/python
+
+experiments:
+  - name: default_no_control_anchor
+    gpu: 0
+    fold: 1
+    seed: 42
+    overrides:
+      model.spectral_propagation: false
+      flow.control_anchor: false
+
+  - name: default_no_ot_coupling
+    gpu: 1
+    fold: 1
+    seed: 42
+    overrides:
+      model.spectral_propagation: false
+      flow.ot_coupling: false
+
+  - name: default_no_delta_corr
+    gpu: 2
+    fold: 0
+    seed: 42
+    overrides:
+      model.spectral_propagation: false
+      flow.delta_corr_weight: 0.0
+
+  - name: default_no_delta_corr
+    gpu: 3
+    fold: 1
+    seed: 42
+    overrides:
+      model.spectral_propagation: false
+      flow.delta_corr_weight: 0.0
+
+  - name: default_no_delta_corr
+    gpu: 4
+    fold: 2
+    seed: 42
+    overrides:
+      model.spectral_propagation: false
+      flow.delta_corr_weight: 0.0
+
+  - name: default_no_delta_corr
+    gpu: 5
+    fold: 3
+    seed: 42
+    overrides:
+      model.spectral_propagation: false
+      flow.delta_corr_weight: 0.0
+
+  - name: default_no_delta_corr
+    gpu: 6
+    fold: 4
+    seed: 42
+    overrides:
+      model.spectral_propagation: false
+      flow.delta_corr_weight: 0.0

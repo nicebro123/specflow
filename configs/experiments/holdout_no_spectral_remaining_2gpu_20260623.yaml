@@ -1,0 +1,28 @@
+# Remaining holdout no-spectral-propagation folds for paper-facing 5-fold evidence.
+# Launched through scripts/launch_experiments.py so every run loads its generated
+# immutable run_config.yaml.
+
+study_name: 20260623_holdout_no_spectral_remaining_2gpu_0602
+output_root: outputs
+base_config: configs/norman.yaml
+python: /mnt/infini-data/test/quan_space/envs/aidd/bin/python
+
+overrides:
+  data.setting: holdout
+  data.split_path: data/splits/norman_holdout.pkl
+
+defaults:
+  seed: 42
+
+experiments:
+  - name: holdout_no_spectral_propagation
+    gpu: 0
+    fold: 3
+    overrides:
+      model.spectral_propagation: false
+
+  - name: holdout_no_spectral_propagation
+    gpu: 1
+    fold: 4
+    overrides:
+      model.spectral_propagation: false

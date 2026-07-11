@@ -1,0 +1,56 @@
+# Six-GPU holdout mechanism supplement for code_0602_opo.
+# This spec is intentionally launched through scripts/launch_experiments.py so
+# every run loads an immutable generated run_config.yaml.
+
+study_name: 20260622_holdout_mechanism_6gpu_0602
+output_root: outputs
+base_config: configs/norman.yaml
+python: /mnt/infini-data/test/quan_space/envs/aidd/bin/python
+
+overrides:
+  data.setting: holdout
+  data.split_path: data/splits/norman_holdout.pkl
+
+defaults:
+  seed: 42
+
+experiments:
+  # Complete 5-fold graph_none evidence. Fold 1 already exists in
+  # outputs/20260603_holdout_ablation_0602/01_holdout_graph_none_f1_s42_g1.
+  - name: holdout_graph_none
+    gpu: 0
+    fold: 0
+    overrides:
+      model.graph_mode: none
+
+  - name: holdout_graph_none
+    gpu: 1
+    fold: 2
+    overrides:
+      model.graph_mode: none
+
+  - name: holdout_graph_none
+    gpu: 2
+    fold: 3
+    overrides:
+      model.graph_mode: none
+
+  - name: holdout_graph_none
+    gpu: 3
+    fold: 4
+    overrides:
+      model.graph_mode: none
+
+  # Start 5-fold no_spectral_propagation evidence. Fold 1 already exists in
+  # outputs/20260603_holdout_ablation_0602/02_holdout_no_spectral_propagation_f1_s42_g2.
+  - name: holdout_no_spectral_propagation
+    gpu: 4
+    fold: 0
+    overrides:
+      model.spectral_propagation: false
+
+  - name: holdout_no_spectral_propagation
+    gpu: 5
+    fold: 2
+    overrides:
+      model.spectral_propagation: false

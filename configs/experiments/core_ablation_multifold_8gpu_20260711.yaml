@@ -1,0 +1,129 @@
+# Multi-fold completion of the four core Norman ablations.
+# Fold 1 is intentionally excluded because it already has completed runs.
+# Each GPU executes two experiments sequentially.
+
+study_name: 20260711_core_ablation_multifold_8gpu_0602
+output_root: outputs
+base_config: configs/norman.yaml
+python: /mnt/infini-data/test/quan_space/envs/aidd/bin/python
+
+experiments:
+  - name: no_spectral_propagation
+    gpu: 0
+    fold: 0
+    seed: 42
+    overrides:
+      model.spectral_propagation: false
+
+  - name: no_control_anchor
+    gpu: 0
+    fold: 0
+    seed: 42
+    overrides:
+      model.spectral_propagation: false
+      flow.control_anchor: false
+
+  - name: no_spectral_propagation
+    gpu: 1
+    fold: 2
+    seed: 42
+    overrides:
+      model.spectral_propagation: false
+
+  - name: no_control_anchor
+    gpu: 1
+    fold: 2
+    seed: 42
+    overrides:
+      model.spectral_propagation: false
+      flow.control_anchor: false
+
+  - name: no_spectral_propagation
+    gpu: 2
+    fold: 3
+    seed: 42
+    overrides:
+      model.spectral_propagation: false
+
+  - name: no_control_anchor
+    gpu: 2
+    fold: 3
+    seed: 42
+    overrides:
+      model.spectral_propagation: false
+      flow.control_anchor: false
+
+  - name: no_spectral_propagation
+    gpu: 3
+    fold: 4
+    seed: 42
+    overrides:
+      model.spectral_propagation: false
+
+  - name: no_control_anchor
+    gpu: 3
+    fold: 4
+    seed: 42
+    overrides:
+      model.spectral_propagation: false
+      flow.control_anchor: false
+
+  - name: no_delta_corr
+    gpu: 4
+    fold: 0
+    seed: 42
+    overrides:
+      flow.delta_corr_weight: 0.0
+
+  - name: no_ot_coupling
+    gpu: 4
+    fold: 0
+    seed: 42
+    overrides:
+      model.spectral_propagation: false
+      flow.ot_coupling: false
+
+  - name: no_delta_corr
+    gpu: 5
+    fold: 2
+    seed: 42
+    overrides:
+      flow.delta_corr_weight: 0.0
+
+  - name: no_ot_coupling
+    gpu: 5
+    fold: 2
+    seed: 42
+    overrides:
+      model.spectral_propagation: false
+      flow.ot_coupling: false
+
+  - name: no_delta_corr
+    gpu: 6
+    fold: 3
+    seed: 42
+    overrides:
+      flow.delta_corr_weight: 0.0
+
+  - name: no_ot_coupling
+    gpu: 6
+    fold: 3
+    seed: 42
+    overrides:
+      model.spectral_propagation: false
+      flow.ot_coupling: false
+
+  - name: no_delta_corr
+    gpu: 7
+    fold: 4
+    seed: 42
+    overrides:
+      flow.delta_corr_weight: 0.0
+
+  - name: no_ot_coupling
+    gpu: 7
+    fold: 4
+    seed: 42
+    overrides:
+      model.spectral_propagation: false
+      flow.ot_coupling: false
